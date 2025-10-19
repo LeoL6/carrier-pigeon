@@ -1,0 +1,67 @@
+/* WEBSOCKET SERVER */
+
+let socket = new WebSocket("ws://" + location.hostname + ":81/");
+
+socket.onopen = () => {
+  console.log("Connected to WebSocket");
+};
+
+/* MSG */
+
+function appendMessage(message, type) {
+  let chat = document.getElementById("chat");
+  let msg = document.createElement("div");
+  msg.className = `message ${type}`
+  msg.textContent = message;
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight; // auto-scroll
+}
+
+/* MSG RECEIVE */
+
+socket.onmessage = (event) => {
+  appendMessage(event.data, "received");
+};
+
+/* MSG SEND */
+
+const input = document.getElementById("msg");
+const counter = document.getElementById("char-count");
+
+function sendMsg() {
+  if (input.value.trim() !== "") {
+    appendMessage(input.value, "sent");
+
+    /* send through socket */
+    socket.send(input.value);
+
+    /* reset counter */
+    counter.textContent = "0 / 180";
+    counter.style = "color: #eee;"
+
+    input.value = "";
+  }
+}
+
+input.addEventListener("keyup", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        sendMsg();
+    }
+})
+
+input.addEventListener("input", () => {
+    counter.textContent = `${msg.value.length} / 180`;
+    if (msg.value.length < 100) { counter.style = "color: #eee;" } else
+    if (msg.value.length < 150) { counter.style = "color: #e0cc18ff;" } else
+    if (msg.value.length < 180) { counter.style = "color: #e08600ff;" } 
+    else { counter.style = "color: #e20e0eff;" } 
+});
+
+/* heartbeat check */
+function sendHeartbeat() {
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: "heartbeat" }));
+  }
+}
+setInterval(sendHeartbeat, 5000); // every 5 seconds
