@@ -89,6 +89,10 @@ setInterval(() => {
     if (!lastHeartbeat || (Date.now() - lastHeartbeat > HEARTBEAT_TIMEOUT)) {
         peerDisconnected(); // disable input, show overlay
     }
-}, 1000); // check every second
+}, 4000); // check every 4 seconds
+
+setInterval(() => {
+    socket.send("ACK");
+}, 5000); // ACKS every 5 seconds
 
 // DO ACKS FROM SOCKET -> LORA -> SOCKET
