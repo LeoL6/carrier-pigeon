@@ -2,9 +2,29 @@
 
 let socket = new WebSocket("ws://" + location.hostname + ":81/");
 
+let lastHeartbeat = null; // timestamp of last received ACK
+const HEARTBEAT_TIMEOUT = 10000; // 10 seconds
+
 socket.onopen = () => {
   console.log("Connected to WebSocket");
 };
+
+function onHeartbeatReceived() {
+    lastHeartbeat = Date.now();
+    peerConnected(); // enable input, hide overlay
+}
+
+function peerConnected() {
+    document.getElementById("msg").disabled = false;
+    document.getElementById("send-btn").disabled = false;
+    document.getElementById("status-overlay").textContent = "Peer Connected";
+}
+
+function peerDisconnected() {
+    document.getElementById("msg").disabled = true;
+    document.getElementById("send-btn").disabled = true;
+    document.getElementById("status-overlay").textContent = "Waiting for peer to connect";
+}
 
 /* MSG */
 
@@ -20,7 +40,12 @@ function appendMessage(message, type) {
 /* MSG RECEIVE */
 
 socket.onmessage = (event) => {
-  appendMessage(event.data, "received");
+    const msg = event.data;
+    if (msg === 'ACK') {
+      onHeartbeatReceived();
+    } else {
+      appendMessage(event.data, "received");
+    }
 };
 
 /* MSG SEND */
@@ -58,10 +83,12 @@ input.addEventListener("input", () => {
     else { counter.style = "color: #e20e0eff;" } 
 });
 
-/* heartbeat check */
-function sendHeartbeat() {
-  if (socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type: "heartbeat" }));
-  }
-}
-setInterval(sendHeartbeat, 5000); // every 5 seconds
+/* check to see if peer is offline periodically */
+
+setInterval(() => {
+    if (!lastHeartbeat || (Date.now() - lastHeartbeat > HEARTBEAT_TIMEOUT)) {
+        peerDisconnected(); // disable input, show overlay
+    }
+}, 1000); // check every second
+
+// DO ACKS FROM SOCKET -> LORA -> SOCKET

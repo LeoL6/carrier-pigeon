@@ -49,9 +49,14 @@ html, body {
     background: #202020;
     align-items: center;
     justify-content: center;
+    padding-bottom: 10%;
     width: 100%;
     height: 100%;
     overflow: hidden;
+}
+
+#status-overlay {
+  padding: 30px;
 }
 
 #chat-container {
@@ -173,3 +178,4 @@ html, body {
 }
 
 #input-area button:hover { background: #005fd1; }
+#input-area button:disabled { background: #005fd1; }

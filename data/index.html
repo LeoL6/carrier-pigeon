@@ -45,13 +45,14 @@
         </div>
         <div class="divider"></div>
         <div id="main">
+            <div id="status-overlay">Waiting for peer...</div>
             <div id="chat-container">
                 <div id="chat"></div>
             </div>
             <div id="input-area">
                 <p id="char-count">0 / 180</p>
                 <input id="msg" placeholder="Type message..." maxlength="180">
-                <button onclick="sendMsg()">Send</button>
+                <button id="send-btn" onclick="sendMsg()" disabled>Send</button>
             </div>
             <script src="script.js"></script>
         </div>
