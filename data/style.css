@@ -49,7 +49,7 @@ html, body {
     background: #202020;
     align-items: center;
     justify-content: center;
-    padding-bottom: 10%;
+    padding-bottom: 60px;
     width: 100%;
     height: 100%;
     overflow: hidden;
@@ -57,6 +57,7 @@ html, body {
 
 #status-overlay {
   padding: 30px;
+  font-size: clamp(1.5rem, 1vw, 3rem);
 }
 
 #chat-container {
@@ -106,7 +107,7 @@ html, body {
   max-width: 70%;
   padding: 10px 14px;
   border-radius: 12px;
-  font-size: 16px;
+  font-size: clamp(1.5rem, 0.8vw, 3rem);
   line-height: 1.4;
   word-wrap: break-word;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -139,6 +140,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: clamp(1.5rem, 1vw, 3rem);
     width: 9%;
     padding: 10px;
     margin: 0;
@@ -154,7 +156,7 @@ html, body {
     padding: 10px;
     border-radius: 6px;
     border: none;
-    font-size: 14px;
+    font-size: clamp(1.5rem, 1vw, 3rem);
     background: #121212;
     border: 1px solid #444444;
     color: #eee;    
@@ -162,7 +164,7 @@ html, body {
 
 #input-area button {
     font-family: inherit;
-    font-size: 16px;
+    font-size: clamp(1.5rem, 1vw, 3rem);
     display: flex;
     align-items: center;
     justify-content: center;
