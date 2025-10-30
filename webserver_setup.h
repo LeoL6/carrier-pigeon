@@ -17,9 +17,18 @@ inline void serveAsyncRoutes() {
     request->send(LittleFS, "/style.css", "text/css");
   });
 
-  // Route to load script.js file
-  server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(LittleFS, "/script.js", "text/javascript");
+  // Route to load .js files
+  server.on("/nacl-fast.min.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/nacl-fast.min.js", "text/javascript");
+  });
+  server.on("/cryptoHandler.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/cryptoHandler.js", "text/javascript");
+  });
+  server.on("/trafficHandler.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/trafficHandler.js", "text/javascript");
+  });
+  server.on("/main.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, "/main.js", "text/javascript");
   });
 }
 
