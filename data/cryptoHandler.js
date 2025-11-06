@@ -21,6 +21,37 @@ window.cryptoHandler = (function() {
     return new TextEncoder().encode(str);
   }
 
+  // --- HMAC helper ---
+  function hmacSHA256(key, data) {
+    const blockSize = 64;
+    if (key.length > blockSize) key = nacl.hash(key).slice(0, 32);
+    if (key.length < blockSize) {
+      const tmp = new Uint8Array(blockSize);
+      tmp.set(key);
+      key = tmp;
+    }
+    const o_key_pad = new Uint8Array(blockSize);
+    const i_key_pad = new Uint8Array(blockSize);
+    for (let i = 0; i < blockSize; i++) {
+      o_key_pad[i] = key[i] ^ 0x5c;
+      i_key_pad[i] = key[i] ^ 0x36;
+    }
+    const inner = nacl.hash(new Uint8Array([...i_key_pad, ...data]));
+    const outer = nacl.hash(new Uint8Array([...o_key_pad, ...inner]));
+    return outer.slice(0, 32);
+  }
+
+  // --- derive session key using ECDH sharedSecret, static PSK (shared on both devices), and the salt (derived from both parties session nonces)---
+  function deriveSessionKey(sharedSecret, psk, salt) {
+    // combine inputs: sharedSecret || psk || salt
+    const data = new Uint8Array([
+      ...sharedSecret,
+      ...psk,
+      ...salt
+    ]);
+    return hmacSHA256(psk, data); // 32-byte key
+  }
+
   function generateKeyPair() {
     const keyPair = nacl.box.keyPair();
     return {
@@ -29,7 +60,7 @@ window.cryptoHandler = (function() {
     };
   }
 
-  function deriveAESKey(myPrivateKey, peerPublicKeyB64) {
+  function deriveSharedSecret(myPrivateKey, peerPublicKeyB64) {
     const peerPublicKey = decodeBase64(peerPublicKeyB64);
     return nacl.box.before(peerPublicKey, myPrivateKey);
   }
@@ -56,8 +87,11 @@ window.cryptoHandler = (function() {
 
   // Expose only what’s needed
   return {
+    encodeBase64,
+    decodeBase64,
     generateKeyPair,
-    deriveAESKey,
+    deriveSharedSecret,
+    deriveSessionKey,
     encryptMessage,
     decryptMessage
   };
