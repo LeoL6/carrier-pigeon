@@ -1,7 +1,19 @@
 # Carrier Pigeon 
 Carrier Pigeon is a Open Source E2EE LoraWAN based Messaging Application. 
 ## Specs
-Majority of Crypto is performed using [TweetNacl.js](https://github.com/dchest/tweetnacl-js).
+> Majority of Crypto is performed using [TweetNacl.js](https://github.com/dchest/tweetnacl-js).
+### Encryption
+NaCl secretbox (XSalsa20-Poly1305)
+### Key Exchange
+Diffie–Hellman (NaCl keypairs)
+### Authentication
+HMAC (PSK + session key)
+### Key Material
+DH-derived shared key + PSK
+### Nonces
+Session nonce + per-message nonce
+###Integrity
+Authenticated encryption (AEAD)
 
 ## Getting Started
 To get started using carrier pigeon you will first want to change the Access Point password to something of your choosing.
