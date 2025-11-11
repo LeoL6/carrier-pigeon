@@ -12,7 +12,7 @@ HMAC (PSK + session key)
 DH-derived shared key + PSK
 ### Nonces
 Session nonce + per-message nonce 
-###Integrity
+### Integrity
 Authenticated encryption (AEAD)
 
 ## Getting Started
