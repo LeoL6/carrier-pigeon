@@ -31,7 +31,7 @@ const PSK = new Uint8Array([
 ]);
 ```
 ## How to Use
-Once connected to the ESP32's access point, navigate to ```192.168.4.1```;
+Once connected to your ESP32's access point, navigate to ```192.168.4.1```;
 Furthermore, once your peer has repeated the same steps, you will alerted that the receiving party has connected. 
 
-You are ready to start chatting with Carrier Pigeon!
+You are now ready to start chatting with **Carrier Pigeon**!
