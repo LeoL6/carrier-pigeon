@@ -57,5 +57,5 @@ void sendLoRaMessage(const String &msg) {
     msg.getBytes(buffer, len + 1);
 
     Radio.Send(buffer, len);
-    Serial.println("LoRa TX → " + msg);
+    Serial.println("LoRa TX -> " + msg);
 }

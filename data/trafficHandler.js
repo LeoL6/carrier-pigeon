@@ -101,11 +101,11 @@ window.trafficHandler = (function() {
         sendToRelay({ type: "MSG", data: encrypted });
     }
 
-    function toHex(u8) {
-    return Array.from(u8)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-    }
+    // function toHex(u8) {
+    // return Array.from(u8)
+    //     .map(b => b.toString(16).padStart(2, '0'))
+    //     .join('');
+    // }
 
     async function handlePubKey(msg) {
         peerPubKey = msg.key;

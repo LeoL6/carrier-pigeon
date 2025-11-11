@@ -3,10 +3,14 @@
 <head>
     <title>Carrier Pigeon</title>
     <link rel="stylesheet" href="style.css">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
 </head>
     <body>
         <div id="logo-container">
-            <pre class="no-select" id="logo">        
+            <pre id="logo">        
                                                     +++--+++       
                                                  +++++++++++++     
                                                 ++++++#+#+++++#    
@@ -50,9 +54,9 @@
                 <div id="chat"></div>
             </div>
             <div id="input-area">
-                <p id="char-count">0 / 180</p>
-                <input id="msg" placeholder="Type message..." maxlength="180">
-                <button id="send-btn" onclick="sendMsg()" disabled>Send</button>
+                <p class="responsive-text" id="char-count">0/180</p>
+                <input class="responsive-text" id="msg" placeholder="Type message..." maxlength="180" disabled>
+                <button class="responsive-text" id="send-btn" onclick="sendMsg()" disabled>Send</button>
             </div>
 
             <script src="nacl-fast.min.js"></script>
