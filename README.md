@@ -1,5 +1,5 @@
 # Carrier Pigeon 
-Carrier Pigeon is a Open Source E2EE LoraWAN based Messaging Application. 
+Carrier Pigeon is a Open Source E2EE LoraWAN based Messaging Application, created for the ESP32.
 ## Specs
 > Majority of Crypto is performed using [TweetNacl.js](https://github.com/dchest/tweetnacl-js).
 ### Encryption
@@ -31,3 +31,7 @@ const PSK = new Uint8Array([
 ]);
 ```
 ## How to Use
+Once connected to the ESP32's access point, navigate to ```192.168.4.1```;
+Furthermore, once your peer has repeated the same steps, you will alerted that the receiving party has connected. 
+
+You are ready to start chatting with Carrier Pigeon!
