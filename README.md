@@ -11,7 +11,7 @@ HMAC (PSK + session key)
 ### Key Material
 DH-derived shared key + PSK
 ### Nonces
-Session nonce + per-message nonce
+Session nonce + per-message nonce 
 ###Integrity
 Authenticated encryption (AEAD)
 
