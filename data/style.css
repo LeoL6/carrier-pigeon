@@ -53,11 +53,6 @@ html, body {
   overflow: hidden;
 }
 
-#status-overlay {
-  padding: 30px;
-  font-size: clamp(1.5rem, 1vw, 2.5rem);
-}
-
 #chat-container {
   display: flex;
   flex-direction: column;
@@ -105,7 +100,6 @@ html, body {
   max-width: 70%;
   padding: 10px 14px;
   border-radius: 12px;
-  /* font-size: clamp(0.8rem, 1.8vw); */
   line-height: 1.4;
   word-wrap: break-word;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -138,8 +132,6 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* font-size: 16px; */
-  /* font-size: clamp(0.95rem, 1.8vw); */
   width: 9%;
   padding: 10px;
   margin: 0;
@@ -155,7 +147,6 @@ html, body {
   padding: 10px;
   border-radius: 6px;
   border: none;
-  /* font-size: clamp(0.8rem, 1.8vw); */
   background: #121212;
   border: 1px solid #444444;
   color: #eee;    
@@ -163,7 +154,6 @@ html, body {
 
 #input-area button {
   font-family: inherit;
-  /* font-size: clamp(0.8rem, 1.8vw); */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -181,7 +171,12 @@ html, body {
 #input-area button:hover { background: #005fd1; }
 #input-area button:disabled { background: #005fd1; }
 
-/* Responsive Elements */
+/* Responsive Text Elements */
+
+#status-overlay {
+  padding: 30px;
+  font-size: 20px;
+}
 
 .responsive-text {
   font-size: 20px;
@@ -192,6 +187,10 @@ html, body {
 }
 
 @media screen and (max-width: 1000px) {
+  #status-overlay {
+    font-size: 16px;
+  }
+
   .responsive-text {
     font-size: 16px;
   }
@@ -202,11 +201,15 @@ html, body {
 }
 
 @media screen and (max-width: 560px) {
+  #status-overlay {
+    font-size: 12px;
+  }
+
   .responsive-text {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .message {
-    font-size: 14px;
+    font-size: 12px;
   }
 }

@@ -1,4 +1,4 @@
-// /* WEBSOCKET SERVER */
+/* WEBSOCKET SERVER */
 
 trafficHandler.initConnection();
 
@@ -17,6 +17,18 @@ function appendMessage(message, type) {
 
 const input = document.getElementById("msg");
 const counter = document.getElementById("char-count");
+
+/* So mobile devices dont fuck me */
+
+// Scroll back to top when input/textarea loses focus
+document.addEventListener('focusout', (event) => {
+  if (event.target.tagName === 'INPUT') {
+    // Delay a bit so iOS finishes resizing the viewport
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  }
+});
 
 async function sendMsg() {
   if (input.value.trim() !== "") {
