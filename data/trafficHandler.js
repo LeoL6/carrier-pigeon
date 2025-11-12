@@ -142,6 +142,10 @@ window.trafficHandler = (function() {
         sendToRelay({ type: "PKEY", key: myPubKey, nonce: encodedNonce });
     }
 
+    function isReadyToMsg() {
+        return state === "ready";
+    }
+
     function onRelayMessage(msg) {
         switch (msg.type) {
             case "HB":
@@ -212,6 +216,7 @@ window.trafficHandler = (function() {
 
     return {
         initConnection,
-        sendEncryptedMessage
+        sendEncryptedMessage,
+        isReadyToMsg
     };
 })();

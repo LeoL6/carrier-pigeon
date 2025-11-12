@@ -31,7 +31,7 @@ document.addEventListener('focusout', (event) => {
 });
 
 async function sendMsg() {
-  if (input.value.trim() !== "") {
+  if (input.value.trim() !== "" && trafficHandler.isReadyToMsg()) {
     appendMessage(input.value, "sent");
 
     /* send through socket to blind relay */
