@@ -96,16 +96,8 @@ window.trafficHandler = (function() {
     function sendEncryptedMessage(text) {
         const encrypted = cryptoHandler.encryptMessage(sessionKey, text);
 
-        //const { ciphertext, iv } = await encryptMessage(sharedKey, text);
-        //sendToRelay({ type: "encrypted", ciphertext, iv }); LEARN MORE ABT THIS IV
         sendToRelay({ type: "MSG", data: encrypted });
     }
-
-    // function toHex(u8) {
-    // return Array.from(u8)
-    //     .map(b => b.toString(16).padStart(2, '0'))
-    //     .join('');
-    // }
 
     async function handlePubKey(msg) {
         peerPubKey = msg.key;
@@ -121,15 +113,6 @@ window.trafficHandler = (function() {
         
         sessionKey = await cryptoHandler.deriveSessionKey(sharedSecret, PSK, salt);
         console.log("Derived Session Key established.");
-
-        // Testing shit
-        // appendMessage(toHex(peerPubKey), "received");
-        // appendMessage(toHex(privateKey), "received");
-        // appendMessage(toHex(sessionNonce), "received");
-        // appendMessage(toHex(peerSessionNonce), "received");
-        // appendMessage(toHex(salt), "received");
-        // appendMessage(toHex(sharedSecret), "received");
-        // appendMessage(toHex(sessionKey), "received");
     }
 
     function handleEncryptedMessage(msg) {

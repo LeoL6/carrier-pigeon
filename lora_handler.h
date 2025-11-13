@@ -5,9 +5,6 @@
 extern WebSocketsServer webSocket;
 RadioEvents_t RadioEvents;
 
-// unsigned long lastHeartbeat = 0;
-// const unsigned long HEARTBEAT_INTERVAL = 5000; // 5s
-
 void onTxDone() {
     Serial.println("LoRa TX done");
     Radio.Rx(0);
@@ -26,16 +23,9 @@ void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) {
     // Forward to all WebSocket clients
     webSocket.broadcastTXT(incoming);
 
-    Radio.Rx(0);
+    Radio.Rx(0);s
 }
 
 void handleLoRa() {
     Radio.IrqProcess(); // Required occasionally for RX/TX Callbacks to be triggered
-
-    // unsigned long now = millis();
-    // if (now - lastHeartbeat >= HEARTBEAT_INTERVAL) {
-    //     lastHeartbeat = now;
-    //     sendLoRaMessage("ACK");
-    //     Serial.println("Heartbeat sent");
-    // }
 }
