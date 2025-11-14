@@ -38,7 +38,7 @@ async function sendMsg() {
     trafficHandler.sendEncryptedMessage(input.value);
 
     /* reset counter */
-    counter.textContent = "0 / 180";
+    counter.textContent = "0 / 100";
     counter.style = "color: #eee;"
 
     input.value = "";
@@ -53,9 +53,9 @@ input.addEventListener("keyup", function(event) {
 })
 
 input.addEventListener("input", () => {
-    counter.textContent = `${msg.value.length} / 180`;
-    if (msg.value.length < 100) { counter.style = "color: #eee;" } else
-    if (msg.value.length < 150) { counter.style = "color: #e0cc18ff;" } else
-    if (msg.value.length < 180) { counter.style = "color: #e08600ff;" } 
+    counter.textContent = `${msg.value.length} / 100`;
+    if (msg.value.length < 60) { counter.style = "color: #eee;" } else
+    if (msg.value.length < 80) { counter.style = "color: #e0cc18ff;" } else
+    if (msg.value.length < 90) { counter.style = "color: #e08600ff;" } 
     else { counter.style = "color: #e20e0eff;" } 
 });
