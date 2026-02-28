@@ -1,7 +1,7 @@
 #pragma once
-#include "states.h"
+#include "States.h"
 
-namespace state_manager {
+namespace StateMachine {
     void init();
     void update(DeviceState &state);
 }

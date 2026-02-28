@@ -1,16 +1,15 @@
-#include "state_manager.h"
-#include "states.h"
+#include "StateMachine.h"
 
 DeviceState currentState = STATE_SLEEPING;
 
 void setup()
 {
-    state_manager::init();
+    StateMachine::init();
 }
 
 void loop()
 {
-    state_manager::update(currentState);
+    StateMachine::update(currentState);
 }
 
 // // base class GxEPD2_GFX can be used to pass references or pointers to the display instance as parameter, uses ~1.2k more code
