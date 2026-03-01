@@ -2,9 +2,11 @@
 #include "StateMachine.h"
 #include "Display.h"
 // #include "L.h"
-// #include "Battery.h"
+#include "Battery.h"
 #include "Keyboard.h"
 #include <esp_sleep.h>
+
+// ON FINAL PUSH REMOVE THIS COMMENT AND REMOVE ALL SERIAL PRINTLNS
 
 static DeviceState previousState = STATE_SLEEPING;
 
@@ -23,7 +25,6 @@ void StateMachine::init()
     Keyboard::init();
     Display::init();
     // LoRa::init();
-    // Battery::init();
 
     enterState(STATE_SLEEPING);
 }
@@ -67,27 +68,32 @@ static void enterState(DeviceState state)
     {
         case STATE_SLEEPING:
             Display::drawSleepingScreen();
+            memset(keyBuffer, 0, sizeof(keyBuffer));
+            bufferIndex = 0;
             break;
 
         default:
+            Battery::wakeUp();
             Display::drawActiveScreen();
             break;
     }
 }
 
-// static void updateBattery()
-// {
-//     static unsigned long lastUpdate = 0;
-//     const unsigned long interval = 3000;
+// This interval is placed inside of StateMachine because it is application level...
+// Whereas: the interval for updateInputBuffer is inside of the Display module because updating too quick is a hardware constraint, not application choice.
+static void updateBattery()
+{
+    static unsigned long lastUpdate = 0;
+    const unsigned long interval = 3000;
 
-//     if (millis() - lastUpdate >= interval)
-//     {
-//         lastUpdate = millis();
+    if (millis() - lastUpdate >= interval)
+    {
+        lastUpdate = millis();
 
-//         float voltage = Battery::readVoltage();
-//         Display::updateBattery(voltage);
-//     }
-// }
+        int percentage = Battery::readPercentage();
+        Display::updateBattery(percentage);
+    }
+}
 
 static void runSleeping(DeviceState &state)
 {
@@ -97,28 +103,11 @@ static void runSleeping(DeviceState &state)
     char key;
     if (Keyboard::read(key))
     {
-        state = STATE_CONNECTED;
         // Wake on any key
+        state = STATE_CONNECTED;
         // state = STATE_CONFIG;
-        // state = STATE_CONNECTED;
     }
 }
-
-// void pollWakeupKeypress() {
-//   // Enable timer wake (10ms)
-//   esp_sleep_enable_timer_wakeup(100000); // 10,000 µs = 10ms
-//   esp_light_sleep_start();
-
-//   // After wake — check keyboard
-//   Wire.requestFrom(0x5F, 1);  // CardKB default address
-
-//   if (Wire.available()) {
-//       uint8_t key = Wire.read();
-//       if (key != 0) {
-//         powerOn();
-//       }
-//   }
-// }
 
 static void runConfig(DeviceState &state) {}
 
@@ -126,15 +115,12 @@ static void runConnecting(DeviceState &state) {}
 
 static void runConnected(DeviceState &state)
 {
-    // Keyboard::update();
     // lora_manager::update();
 
     // Handle keyboard input
     char key;
     if (Keyboard::read(key))
     {
-        // char key = Keyboard::getKey();
-
         switch (key)
         {
             case 13:
@@ -178,7 +164,6 @@ static void runConnected(DeviceState &state)
                 break;
 
             default:
-                // if (key == 0) break;
                 if (bufferIndex < sizeof(keyBuffer) - 1)
                 {
                     keyBuffer[bufferIndex++] = (char)key;
@@ -189,11 +174,9 @@ static void runConnected(DeviceState &state)
         }
     }
 
-    // // Update battery periodically
-    // // float voltage = Battery::readVoltage();
-    // // Display::updateBattery(voltage);
-    // updateBattery();
+    // Update battery periodically (Every 3s)
+    updateBattery();
 
-    // // Update UI with buffer content
+    // Update UI with buffer content periodically (Every 20ms)
     Display::updateInputBuffer(keyBuffer);
 }

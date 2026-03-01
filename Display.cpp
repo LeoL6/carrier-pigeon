@@ -522,12 +522,25 @@ namespace Display {
     while (display.nextPage());
   }
 
-  void updateBattery(int voltage)
+  void updateBattery(int percentage)
   {
     constexpr int BAT_X = 344;
     constexpr int BAT_Y = 12;
     constexpr int BAT_W = 60;
     constexpr int BAT_H = 26;
+
+    display.setPartialWindow(BAT_X, BAT_Y, BAT_W, BAT_H);
+    display.firstPage();
+    do
+    {
+      display.fillRect(BAT_X, BAT_Y, BAT_W, BAT_H, GxEPD_WHITE);
+      display.drawRect(BAT_X, BAT_Y, BAT_W, BAT_H, GxEPD_BLACK);
+
+      display.setCursor(BAT_X + 5, BAT_Y + 18);
+      display.print(percentage);
+      display.print("%");
+    }
+    while (display.nextPage());
   }
 
   void updateInputBuffer(const char* keyBuffer)

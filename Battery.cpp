@@ -1,53 +1,73 @@
-// #include <Arduino.h>
-// #include <Wire.h>
+#include <Arduino.h>
+#include <Wire.h>
 
-// // =====================
-// // Battery Pins
-// // =====================
-// #define VBAT_PIN 1
-// #define ADC_CTRL 37
+namespace Battery
+{
+  // <===================>
+  //    Battery Pins
+  // <===================>
+  static constexpr int PIN_VBAT = 1;
+  static constexpr int ADC_CTRL = 37;
 
-// float readBatteryVoltage() {
+  void wakeUp()
+  {
+    // Battery ADC Read Setup
+    analogReadResolution(12);
+    analogSetPinAttenuation(PIN_VBAT, ADC_11db);
 
-//   digitalWrite(ADC_CTRL, HIGH);   // Enable measurement
-//   delay(5);                       // Stabilize divider
+    pinMode(ADC_CTRL, OUTPUT);
+    // Keep OFF until needed
+    digitalWrite(ADC_CTRL, LOW);
+  }
 
-//   const int samples = 8;
-//   long total = 0;
+  float readVoltage() 
+  {
+    digitalWrite(ADC_CTRL, HIGH);   // Enable measurement
+    delay(5);                       // Stabilize divider
 
-//   for (int i = 0; i < samples; i++) {
-//     total += analogReadMilliVolts(VBAT_PIN);
-//     delay(2);
-//   }
+    const int samples = 8;
+    long total = 0;
 
-//   digitalWrite(ADC_CTRL, LOW);    // Disable measurement
+    for (int i = 0; i < samples; i++) {
+      total += analogReadMilliVolts(PIN_VBAT);
+      delay(2);
+    }
 
-//   float avgMilliVolts = total / (float)samples;
+    digitalWrite(ADC_CTRL, LOW);    // Disable measurement
 
-//   // Reverse voltage divider (× 4.9)
-//   const float dividerFactor = 4.9;
-//   const float calibrationFactor = 1.0394;
+    float avgMilliVolts = total / (float) samples;
 
-//   float voltage = (avgMilliVolts * dividerFactor * calibrationFactor) / 1000.0;
+    // Reverse voltage divider (× 4.9)
+    const float dividerFactor = 4.9;
+    const float calibrationFactor = 1.0394;
 
-//   return voltage;
-// }
+    float voltage = (avgMilliVolts * dividerFactor * calibrationFactor) / 1000.0;
 
-// int voltageToPercent(float v) {
+    return voltage;
+  }
 
-//   // Clamp extremes
-//   if (v >= 4.20) return 100;
-//   if (v <= 3.20) return 0;
+  int voltageToPercentage(float v) 
+  {
+    // Clamp extremes
+    if (v >= 4.20) return 100;
+    if (v <= 3.20) return 0;
 
-//   // Piecewise Li-ion curve approximation
-//   if (v > 4.0)
-//     return 80 + (v - 4.0) * 100;     // 4.0–4.2V
+    // Piecewise Li-ion curve approximation
+    if (v > 4.0)
+      return 80 + (v - 4.0) * 100;     // 4.0–4.2V
 
-//   if (v > 3.8)
-//     return 60 + (v - 3.8) * 100;     // 3.8–4.0V
+    if (v > 3.8)
+      return 60 + (v - 3.8) * 100;     // 3.8–4.0V
 
-//   if (v > 3.6)
-//     return 30 + (v - 3.6) * 150;     // 3.6–3.8V
+    if (v > 3.6)
+      return 30 + (v - 3.6) * 150;     // 3.6–3.8V
 
-//   return (v - 3.2) * 75;             // 3.2–3.6V
-// }
+    return (v - 3.2) * 75;             // 3.2–3.6V
+  }
+
+  int readPercentage()
+  {
+    float v = readVoltage();
+    return voltageToPercentage(v);
+  }
+}
