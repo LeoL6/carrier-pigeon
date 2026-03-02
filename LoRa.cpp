@@ -16,77 +16,86 @@ namespace LoRa
   static constexpr bool LORA_IQ_INVERSION_ON       = false; 
 
   // Radio event structure
-  extern RadioEvents_t RadioEvents;
+  RadioEvents_t RadioEvents;
+
+  // struct Message
+  // {
+  //     uint8_t data[256];
+  //     uint16_t size;
+  //     int16_t rssi;
+  //     int8_t snr;
+  // };
 
   // Forward declarations
-  void initLoRa();
   void sendLoRaMessage(const String &msg);
   void onTxDone();
   void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr);
 
   // Setup function
-  void initLoRa() {
-      Serial.println("Initializing Heltec LoRa...");
-      Mcu.begin(HELTEC_BOARD, SLOW_CLK_TPYE);
+  void init() 
+  {
+    Serial.println("Initializing Heltec LoRa...");
+    Mcu.begin(HELTEC_BOARD, SLOW_CLK_TPYE);
 
-      // Attach event handlers
-      RadioEvents.TxDone = onTxDone;
-      RadioEvents.RxDone = onRxDone;
+    // Attach event handlers
+    RadioEvents.TxDone = onTxDone;
+    RadioEvents.RxDone = onRxDone;
 
-      // Init radio
-      Radio.Init(&RadioEvents);
-      Radio.SetChannel(RF_FREQUENCY);
+    // Init radio
+    Radio.Init(&RadioEvents);
+    Radio.SetChannel(RF_FREQUENCY);
 
-      // Configure transmission
-      Radio.SetTxConfig(MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
-                      LORA_SPREADING_FACTOR, LORA_CODINGRATE,
-                      LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                      true, 0, 0, LORA_IQ_INVERSION_ON, 3000);
-                      
-      // Configure reception
-      Radio.SetRxConfig(MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
-                      LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
-                      0, LORA_FIX_LENGTH_PAYLOAD_ON,
-                      0, true, 0, 0, LORA_IQ_INVERSION_ON, true);
+    // Configure transmission
+    Radio.SetTxConfig(MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
+                    LORA_SPREADING_FACTOR, LORA_CODINGRATE,
+                    LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
+                    true, 0, 0, LORA_IQ_INVERSION_ON, 3000);
+                    
+    // Configure reception
+    Radio.SetRxConfig(MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
+                    LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
+                    0, LORA_FIX_LENGTH_PAYLOAD_ON,
+                    0, true, 0, 0, LORA_IQ_INVERSION_ON, true);
 
-      Serial.println("LoRa initialized (Heltec native driver)");
-      Radio.Rx(0);  // Start listening immediately
+    Serial.println("LoRa initialized (Heltec native driver)");
+    Radio.Rx(0);  // Start listening immediately
   }
 
   // Send LoRa message (UTF-8 safe)
-  void sendLoRaMessage(const String &msg) {
-      uint8_t buffer[255];
-      uint16_t len = msg.length();
-      msg.getBytes(buffer, len + 1);
+  void sendLoRaMessage(const String &msg) 
+  {
+    uint8_t buffer[255];
+    uint16_t len = msg.length();
+    msg.getBytes(buffer, len + 1);
 
-      Radio.Send(buffer, len);
-      Serial.println("LoRa TX -> " + msg);
+    Radio.Send(buffer, len);
+    Serial.println("LoRa TX -> " + msg);
   }
 
-  void handleLoRa() {
-      Radio.IrqProcess(); // Required occasionally for RX/TX Callbacks to be triggered
-  }
-}
-
-RadioEvents_t RadioEvents;
-
-void onTxDone() {
+  void onTxDone() 
+  {
     Serial.println("LoRa TX done");
     Radio.Rx(0);
-}
+  }
 
-void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) {
-    String incoming;
-    for (int i = 0; i < size; i++) incoming += (char)payload[i];
+  void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) 
+  {
+      String incoming;
+      for (int i = 0; i < size; i++) incoming += (char)payload[i];
 
-    Serial.printf("LoRa RX → %s (RSSI: %d dBm)\n", incoming.c_str(), rssi);
+      Serial.printf("LoRa RX -> %s (RSSI: %d dBm)\n", incoming.c_str(), rssi);
 
-    if (incoming == "ACK") {
+      if (incoming == "ACK") {
         Serial.println("Received heartbeat");
-    }
+      }
 
-    // Forward to all WebSocket clients
-    webSocket.broadcastTXT(incoming);
+      Serial.println(incoming);
 
-    Radio.Rx(0);s
+      Radio.Rx(0);
+  }
+
+  void update() 
+  {
+    Radio.IrqProcess(); // Required occasionally for RX/TX Callbacks to be triggered
+  }
 }

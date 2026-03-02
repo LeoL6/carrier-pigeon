@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "StateMachine.h"
 #include "Display.h"
-// #include "L.h"
+#include "LoRa.h"
 #include "Battery.h"
 #include "Keyboard.h"
 #include <esp_sleep.h>
@@ -24,7 +24,7 @@ void StateMachine::init()
 {
     Keyboard::init();
     Display::init();
-    // LoRa::init();
+    LoRa::init();
 
     enterState(STATE_SLEEPING);
 }
@@ -116,7 +116,7 @@ static void runConnecting(DeviceState &state) {}
 
 static void runConnected(DeviceState &state)
 {
-    // lora_manager::update();
+    LoRa::update();
 
     // Handle keyboard input
     char key;
