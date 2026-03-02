@@ -15,7 +15,7 @@ namespace Display {
     // <=====================>
     // Partial Screen Functions
     // <=====================>
-    void updateBattery(int voltage);
+    void updateBattery(int percentage, bool charging);
     void updateInputBuffer(const char* keyBuffer);
 }
 

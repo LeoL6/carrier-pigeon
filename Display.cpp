@@ -522,7 +522,7 @@ namespace Display {
     while (display.nextPage());
   }
 
-  void updateBattery(int percentage)
+  void updateBattery(int percentage, bool charging)
   {
     constexpr int BAT_X = 344;
     constexpr int BAT_Y = 12;
@@ -537,8 +537,15 @@ namespace Display {
       display.drawRect(BAT_X, BAT_Y, BAT_W, BAT_H, GxEPD_BLACK);
 
       display.setCursor(BAT_X + 5, BAT_Y + 18);
-      display.print(percentage);
-      display.print("%");
+      if (charging)
+      {
+        display.print("CHRG");
+      } 
+      else
+      {
+        display.print(percentage);
+        display.print("%");
+      }
     }
     while (display.nextPage());
   }
@@ -554,8 +561,6 @@ namespace Display {
     const unsigned long INTERVAL = 20;
 
     if (millis() - lastUpdate < INTERVAL) return;
-
-    Serial.printf("Buffer: %s\n", keyBuffer);
 
     lastUpdate = millis();
 

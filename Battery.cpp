@@ -13,7 +13,6 @@ namespace Battery
   {
     // Battery ADC Read Setup
     analogReadResolution(12);
-    analogSetPinAttenuation(PIN_VBAT, ADC_11db);
 
     pinMode(ADC_CTRL, OUTPUT);
     // Keep OFF until needed
@@ -22,14 +21,27 @@ namespace Battery
 
   float readVoltage() 
   {
+    // Battery ADC Read Setup
+    analogReadResolution(12);
+
+    pinMode(ADC_CTRL, OUTPUT);
+    // Keep OFF until needed
+    digitalWrite(ADC_CTRL, LOW);
+
+    delay(5);
+
+    analogRead(PIN_VBAT);
+
+    delay(5);
+
     digitalWrite(ADC_CTRL, HIGH);   // Enable measurement
     delay(5);                       // Stabilize divider
 
-    const int samples = 8;
+    const int samples = 12;
     long total = 0;
 
     for (int i = 0; i < samples; i++) {
-      total += analogReadMilliVolts(PIN_VBAT);
+      total += analogRead(PIN_VBAT);
       delay(2);
     }
 
@@ -43,7 +55,13 @@ namespace Battery
 
     float voltage = (avgMilliVolts * dividerFactor * calibrationFactor) / 1000.0;
 
+    Serial.printf("VOLTAGE: %f\n", voltage);
+
     return voltage;
+  }
+
+  bool isUsbConnected() {
+      return Serial;   // true when USB CDC connected
   }
 
   int voltageToPercentage(float v) 

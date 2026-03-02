@@ -91,7 +91,8 @@ static void updateBattery()
         lastUpdate = millis();
 
         int percentage = Battery::readPercentage();
-        Display::updateBattery(percentage);
+        bool charging = Battery::isUsbConnected();
+        Display::updateBattery(percentage, charging);
     }
 }
 
