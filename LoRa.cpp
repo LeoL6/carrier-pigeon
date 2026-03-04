@@ -1,5 +1,6 @@
 #include "LoRaWan_APP.h"
 #include "Arduino.h"
+#include "LoRa.h"
 
 namespace LoRa
 {
@@ -15,8 +16,23 @@ namespace LoRa
   static constexpr bool LORA_FIX_LENGTH_PAYLOAD_ON = false; 
   static constexpr bool LORA_IQ_INVERSION_ON       = false; 
 
-  // Radio event structure
+  // <=========================>
+  //   Radio event structure
+  // <=========================>
   RadioEvents_t RadioEvents;
+
+  // <=========================>
+  //   TX Variables
+  // <=========================>
+  static uint8_t txBuffer[LoRa::BUFFER_SIZE];
+  static volatile bool txInProgress = false;
+
+  // <=========================>
+  //   RX Variables
+  // <=========================>
+  static uint8_t rxBuffer[LoRa::BUFFER_SIZE];
+  static uint16_t rxSize = 0;
+  static volatile bool messageAvailable = false;
 
   // struct Message
   // {
@@ -26,10 +42,15 @@ namespace LoRa
   //     int8_t snr;
   // };
 
-  // Forward declarations
-  void sendLoRaMessage(const String &msg);
-  void onTxDone();
-  void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr);
+  // <=========================>
+  //   Forward declarations
+  // <=========================>
+  static void sendLoRaMessage(const String &msg);
+  static void onTxDone();
+  static void onTxTimeout(void);
+  static void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr);
+  static void onRxTimeout(void);
+  static void onRxError(void);
 
   // Setup function
   void init() 
@@ -39,7 +60,10 @@ namespace LoRa
 
     // Attach event handlers
     RadioEvents.TxDone = onTxDone;
+    RadioEvents.TxTimeout = onTxTimeout;
     RadioEvents.RxDone = onRxDone;
+    RadioEvents.RxTimeout = onRxTimeout;
+    RadioEvents.RxError = onRxError;
 
     // Init radio
     Radio.Init(&RadioEvents);
@@ -61,41 +85,82 @@ namespace LoRa
     Radio.Rx(0);  // Start listening immediately
   }
 
-  // Send LoRa message (UTF-8 safe)
-  void sendLoRaMessage(const String &msg) 
+  // Send LoRa message
+  void sendMessage(const char* msg)
   {
-    uint8_t buffer[255];
-    uint16_t len = msg.length();
-    msg.getBytes(buffer, len + 1);
+    if (txInProgress) return;
 
-    Radio.Send(buffer, len);
-    Serial.println("LoRa TX -> " + msg);
+    size_t size = strlen(msg);
+    if (size > BUFFER_SIZE)
+        size = BUFFER_SIZE;
+
+    memcpy(txBuffer, msg, size);
+
+    txInProgress = true;
+
+    Serial.println("Sending...");
+    Radio.Send(txBuffer, size);
   }
 
   void onTxDone() 
   {
-    Serial.println("LoRa TX done");
+    txInProgress = false;
+
+    // Switch back to receive mode
     Radio.Rx(0);
   }
 
   void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) 
   {
-      String incoming;
-      for (int i = 0; i < size; i++) incoming += (char)payload[i];
+    if (size > BUFFER_SIZE)
+      size = BUFFER_SIZE;
 
-      Serial.printf("LoRa RX -> %s (RSSI: %d dBm)\n", incoming.c_str(), rssi);
+    memcpy(rxBuffer, payload, size);
+    rxSize = size;
+    messageAvailable = true;
 
-      if (incoming == "ACK") {
-        Serial.println("Received heartbeat");
-      }
+    // Switch back to receive mode
+    Radio.Rx(0);
+  }
 
-      Serial.println(incoming);
+  void onTxTimeout(void)
+  {
+    txInProgress = false;
 
-      Radio.Rx(0);
+    // Switch back to receive mode
+    Radio.Rx(0);
+  }
+
+  void onRxTimeout(void)
+  {
+    // Switch back to receive mode
+    Radio.Rx(0);
+  }
+
+  void onRxError(void)
+  {
+    // Switch back to receive mode
+    Radio.Rx(0);
   }
 
   void update() 
   {
     Radio.IrqProcess(); // Required occasionally for RX/TX Callbacks to be triggered
+  }
+
+  bool isMessageAvailable()
+  {
+      return messageAvailable;
+  }
+
+  uint16_t getMessage(uint8_t* buffer)
+  {
+      if (!messageAvailable)
+          return 0;
+
+      memcpy(buffer, rxBuffer, rxSize);
+      messageAvailable = false;
+
+      return rxSize;
   }
 }

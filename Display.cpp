@@ -552,17 +552,17 @@ namespace Display {
 
   void updateInputBuffer(const char* keyBuffer)
   {
-    constexpr int TB_X = 12;
-    constexpr int TB_Y = 202;
-    constexpr int TB_W = 392;
-    constexpr int TB_H = 26;
-
     static unsigned long lastUpdate = 0;
     const unsigned long INTERVAL = 20;
 
     if (millis() - lastUpdate < INTERVAL) return;
 
     lastUpdate = millis();
+
+    constexpr int TB_X = 12;
+    constexpr int TB_Y = 202;
+    constexpr int TB_W = 392;
+    constexpr int TB_H = 26;
 
     display.setPartialWindow(TB_X, TB_Y, TB_W, TB_H);
     display.firstPage();

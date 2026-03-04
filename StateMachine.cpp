@@ -96,6 +96,31 @@ static void updateBattery()
     }
 }
 
+static void updateChat()
+{
+    static unsigned long lastUpdate = 0;
+    const unsigned long interval = 50;
+
+    if (millis() - lastUpdate >= interval)
+    {
+        lastUpdate = millis();
+
+        uint8_t buffer[256];
+
+        if (LoRa::isMessageAvailable())
+        {
+            uint16_t size = LoRa::getMessage(buffer);
+
+            if (size < LoRa::BUFFER_SIZE)
+                buffer[size] = '\0';
+
+            Serial.println((char*)buffer);
+
+            // Display::showMessage((char*)buffer);
+        }
+    }
+}
+
 static void runSleeping(DeviceState &state)
 {
     esp_sleep_enable_timer_wakeup(50000); // 50ms
@@ -177,6 +202,9 @@ static void runConnected(DeviceState &state)
 
     // Update battery periodically (Every 3s)
     updateBattery();
+
+    // Update Chat Buffer periodically ( Every 20ms )
+    updateChat();
 
     // Update UI with buffer content periodically (Every 20ms)
     Display::updateInputBuffer(keyBuffer);
