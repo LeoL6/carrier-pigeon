@@ -1,4 +1,4 @@
-#include "StateMachine.h"
+#include "src/system/StateMachine.h"
 
 DeviceState currentState = STATE_SLEEPING;
 
