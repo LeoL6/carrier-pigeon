@@ -10,6 +10,11 @@
 #include "../services/Battery.h"
 #include "../input/Keyboard.h"
 
+// <===================>
+//   Domain Modules
+// <===================>
+#include "../message/Messages.h"
+
 // ON FINAL PUSH REMOVE THIS COMMENT AND REMOVE ALL SERIAL PRINTLNS
 
 static DeviceState previousState = STATE_SLEEPING;
@@ -21,8 +26,8 @@ static void runConfig(DeviceState &state);
 static void runConnecting(DeviceState &state);
 static void runConnected(DeviceState &state);
 
-static char keyBuffer[64];
-static int bufferIndex = 0;
+// static char keyBuffer[64];
+// static int bufferIndex = 0;
 
 void StateMachine::init()
 {
@@ -72,8 +77,9 @@ static void enterState(DeviceState state)
     {
         case STATE_SLEEPING:
             Display::drawSleepingScreen();
-            memset(keyBuffer, 0, sizeof(keyBuffer));
-            bufferIndex = 0;
+            Messages::clearInputBuffer();
+            // memset(keyBuffer, 0, sizeof(keyBuffer));
+            // bufferIndex = 0;
             break;
 
         default:
@@ -81,6 +87,7 @@ static void enterState(DeviceState state)
             Serial.println(state);
             Battery::wakeUp();
             Display::drawActiveScreen();
+            if (state == STATE_CONNECTED) Display::clearMessageLines();
             break;
     }
 }
@@ -102,7 +109,7 @@ static void updateBattery()
     }
 }
 
-static void updateChat()
+static void pollLoRa()
 {
     static unsigned long lastUpdate = 0;
     const unsigned long interval = 50;
@@ -111,7 +118,7 @@ static void updateChat()
     {
         lastUpdate = millis();
 
-        uint8_t buffer[256];
+        uint8_t buffer[MAX_MESSAGE_LEN];
 
         if (LoRa::isMessageAvailable())
         {
@@ -121,6 +128,14 @@ static void updateChat()
                 buffer[size] = '\0';
 
             Serial.println((char*)buffer);
+
+            Message msg;
+
+            memcpy(msg.text, buffer, size);
+            msg.text[size] = '\0';
+            msg.outgoing = false;
+
+            Messages::push(msg);
 
             // Display::showMessage((char*)buffer);
         }
@@ -144,12 +159,19 @@ static void runSleeping(DeviceState &state)
 
 static void sendMessage()
 {
-    // if (bufferIndex < sizeof(keyBuffer) - 1)
-    // {
-    //     keyBuffer[bufferIndex++] = (char)key;
-    //     keyBuffer[bufferIndex] = '\0';
-    //     Serial.printf("Buffer: %s\n", keyBuffer);
-    // }
+    if (!Messages::isInputBufferEmpty())
+    {
+        const char* inputBuffer = Messages::getInputBuffer();
+
+        Message msg;
+        strncpy(msg.text, inputBuffer, MAX_MESSAGE_LEN);
+        msg.outgoing = true;
+
+        Messages::push(msg);
+        LoRa::sendMessage(inputBuffer);
+        Messages::clearInputBuffer();
+        Display::drawMessages();
+    }
 }
 
 static void handleInput(const KeyEvent& event, DeviceState &state)
@@ -157,15 +179,15 @@ static void handleInput(const KeyEvent& event, DeviceState &state)
     switch (event.type)
     {
         case KeyEventType::CHARACTER:
-            // Messages::appendInputChar(event.character);
+            Messages::appendChar(event.character);
             break;
 
         case KeyEventType::BACKSPACE:
-            // Messages::removeInputChar();
+            Messages::backspace();
             break;
 
         case KeyEventType::ENTER:
-            // sendMessage();
+            sendMessage();
             break;
 
         case KeyEventType::ESCAPE:
@@ -280,9 +302,21 @@ static void runConnected(DeviceState &state)
     // Update battery periodically (Every 3s)
     updateBattery();
 
-    // Update Chat Buffer periodically ( Every 20ms )
-    updateChat();
+    // Poll LoRa periodically ( Every 20ms )
+    pollLoRa();
 
-    // Update UI with buffer content periodically (Every 20ms)
-    Display::updateInputBuffer(keyBuffer);
+    Message msg;
+
+    if (Messages::pop(msg))
+    {
+        Display::addMessage(msg);
+        Display::drawMessages();
+    }
+
+    // Update UI with buffer content periodically (Every 20ms) CHANGED THIS TO DIRTY FLAGS INSTEADDDD
+    if (Messages::isInputDirty())
+    {
+        Display::updateInputBuffer(Messages::getInputBuffer());
+        Messages::clearInputDirty();
+    }
 }

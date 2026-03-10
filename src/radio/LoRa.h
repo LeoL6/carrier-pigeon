@@ -13,6 +13,7 @@ namespace LoRa
   // <========================>
   //   Message Functions
   // <========================>
+  void sendMessage(const char* msg);
   bool isMessageAvailable();
   uint16_t getMessage(uint8_t* buffer);
 }

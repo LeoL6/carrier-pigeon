@@ -155,7 +155,7 @@ namespace LoRa
 
   uint16_t getMessage(uint8_t* buffer)
   {
-      if (!messageAvailable)
+      if (!messageAvailable || !buffer)
           return 0;
 
       memcpy(buffer, rxBuffer, rxSize);

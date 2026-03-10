@@ -8,12 +8,15 @@
 #include <GxEPD2_BW.h>
 #include <GxEPD2_3C.h>
 #include <Fonts/FreeSansBold9pt7b.h>
+#include <Fonts/FreeSans9pt7b.h>
 
-namespace Display {
+namespace Display 
+{
   // <===================>
   //   Logo Bitmap Data
   // <===================>
-  static const unsigned char logoBitmapData[] PROGMEM = {
+  static const unsigned char logoBitmapData[] PROGMEM = 
+  {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -458,6 +461,11 @@ namespace Display {
   // <===================>
   static GxEPD2_BW<GxEPD2_370_GDEY037T03, GxEPD2_370_GDEY037T03::HEIGHT> display(GxEPD2_370_GDEY037T03(PIN_CS, PIN_DC, PIN_RST, PIN_BUSY));
 
+  // <===================>
+  //   Message Variables
+  // <===================>
+  constexpr int MAX_LINES = 5;
+  Message screenLines[MAX_LINES];
 
   void init()
   {
@@ -529,6 +537,7 @@ namespace Display {
     constexpr int BAT_W = 60;
     constexpr int BAT_H = 26;
 
+    display.setFont(&FreeSansBold9pt7b);
     display.setPartialWindow(BAT_X, BAT_Y, BAT_W, BAT_H);
     display.firstPage();
     do
@@ -552,18 +561,19 @@ namespace Display {
 
   void updateInputBuffer(const char* keyBuffer)
   {
-    static unsigned long lastUpdate = 0;
-    const unsigned long INTERVAL = 20;
+    // static unsigned long lastUpdate = 0;
+    // const unsigned long INTERVAL = 20;
 
-    if (millis() - lastUpdate < INTERVAL) return;
+    // if (millis() - lastUpdate < INTERVAL) return;
 
-    lastUpdate = millis();
+    // lastUpdate = millis();
 
     constexpr int TB_X = 12;
     constexpr int TB_Y = 202;
     constexpr int TB_W = 392;
     constexpr int TB_H = 26;
 
+    display.setFont(&FreeSansBold9pt7b);
     display.setPartialWindow(TB_X, TB_Y, TB_W, TB_H);
     display.firstPage();
     do
@@ -577,6 +587,106 @@ namespace Display {
     while (display.nextPage());
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ADD BLINK CURSOR EVENTUALLY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  }
+
+  void addMessage(const Message& msg)
+  {
+    // shift lines up
+    for (int i = 0; i < MAX_LINES - 1; i++)
+    {
+      screenLines[i] = screenLines[i + 1];
+    }
+
+    // newest at bottom
+    screenLines[MAX_LINES - 1] = msg;
+  }
+
+  void clearMessageLines()
+  {
+    for (int i = 0; i < MAX_LINES; i++)
+    {
+        screenLines[i].text[0] = '\0';
+        screenLines[i].outgoing = false;
+    }
+  }
+
+  // void drawReceived(const char* text, int y)
+  // {
+  //   constexpr int LEFT_BOUND = 14;
+
+  //   Serial.println("Received");
+  //   Serial.println(text);
+
+  //   display.setCursor(LEFT_BOUND, y);
+  //   display.print(text);
+  // }
+
+  // void drawTransmitted(const char* text, int y)
+  // {
+  //   constexpr int LEFT_BOUND = 32;
+
+  //   Serial.println("Sent");
+  //   Serial.println(text);
+
+  //   display.setCursor(LEFT_BOUND, y);
+  //   display.print(text);
+  // }
+
+  void drawMessage(Message& msg, int y)
+  {
+    constexpr int MARGIN = 4;
+    constexpr int LINE_HEIGHT = 18;
+    constexpr int RIGHT_BOUND = 402;
+
+    int LEFT_BOUND = 20;
+
+    int16_t x1, y1;
+    uint16_t w, h;
+
+    display.getTextBounds(msg.text, LEFT_BOUND, y, &x1, &y1, &w, &h);
+
+    if (msg.outgoing)
+    {
+      LEFT_BOUND = RIGHT_BOUND - (w + (MARGIN * 2));
+    }
+
+    display.drawRect(LEFT_BOUND - MARGIN, y - LINE_HEIGHT, w + (MARGIN * 2), LINE_HEIGHT + (MARGIN * 2), GxEPD_BLACK);
+    display.setCursor(LEFT_BOUND, y);
+    display.print(msg.text);
+
+    Serial.println(msg.text);
+  }
+
+
+  // EVENTUALLY REWRITE SO IT DOESNT REQUIRE FULL REDRAW OF REGION
+  void drawMessages()
+  {
+    constexpr int INNER_BOX_X = 14;
+    constexpr int INNER_BOX_Y = 48;
+    constexpr int INNER_BOX_W = 388;
+    constexpr int INNER_BOX_H = 152;
+
+    display.setFont(&FreeSans9pt7b);
+    display.setPartialWindow(INNER_BOX_X, INNER_BOX_Y, INNER_BOX_W, INNER_BOX_H);
+    display.firstPage();
+    do
+    {
+      constexpr int LINE_HEIGHT = 20; //display.getTextBounds("Hello", 0, 0, &x1, &y1, &w, &h);
+      constexpr int MARGIN = 8;
+      int cnt = 0;
+      for (int i = 0; i < MAX_LINES; i++)
+      {
+        if (screenLines[i].text[0] != '\0')
+        {
+
+          int y = (INNER_BOX_Y + LINE_HEIGHT) + (cnt * (LINE_HEIGHT + MARGIN));
+
+          drawMessage(screenLines[i], y);
+          cnt++;
+        }
+      }
+    }
+    while (display.nextPage());
   }
 
   // void Display::updateInputBuffer(const char* buffer, size_t length)
