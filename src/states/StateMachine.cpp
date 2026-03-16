@@ -7,7 +7,7 @@
 // <====================>
 #include "../ui/Display.h"
 #include "../radio/LoRa.h"
-#include "../services/Battery.h"
+#include "../system/Battery.h"
 #include "../input/Keyboard.h"
 
 // <===================>
@@ -179,6 +179,7 @@ static void handleInput(const KeyEvent& event, DeviceState &state)
     switch (event.type)
     {
         case KeyEventType::CHARACTER:
+            if (state == STATE_CONFIG && Messages::getInputLength() == 12) return;
             Messages::appendChar(event.character);
             break;
 

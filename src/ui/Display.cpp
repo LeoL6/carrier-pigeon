@@ -632,6 +632,11 @@ namespace Display
   //   display.print(text);
   // }
 
+  void drawTimer(int startMs) 
+  {
+    
+  }
+
   void drawMessage(Message& msg, int y)
   {
     constexpr int MARGIN = 4;
