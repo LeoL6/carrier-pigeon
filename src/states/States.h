@@ -3,6 +3,6 @@
 enum DeviceState {
     STATE_SLEEPING,
     STATE_CONFIG,
-    STATE_CONNECTING,
+    STATE_PAIRING,
     STATE_CONNECTED
 };

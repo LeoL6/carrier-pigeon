@@ -23,7 +23,7 @@ static DeviceState previousState = STATE_SLEEPING;
 static void enterState(DeviceState state);
 static void runSleeping(DeviceState &state);
 static void runConfig(DeviceState &state);
-static void runConnecting(DeviceState &state);
+static void runPairing(DeviceState &state);
 static void runConnected(DeviceState &state);
 
 // static char keyBuffer[64];
@@ -58,8 +58,8 @@ void StateMachine::update(DeviceState &state)
             runConfig(state);
             break;
 
-        case STATE_CONNECTING:
-            runConnecting(state);
+        case STATE_PAIRING:
+            runPairing(state);
             break;
 
         case STATE_CONNECTED:
@@ -86,8 +86,10 @@ static void enterState(DeviceState state)
             Serial.println("ENTERING");
             Serial.println(state);
             Battery::wakeUp();
-            Display::drawActiveScreen();
+            Display::drawActiveScreen(state);
             if (state == STATE_CONNECTED) Display::clearMessageLines();
+
+            // MAYBE IF STATE == CONFIG THEN DO SUM W THE TIME.MS HERE, ONCE
             break;
     }
 }
@@ -285,7 +287,7 @@ static void runConfig(DeviceState &state)
     updateBattery();
 }
 
-static void runConnecting(DeviceState &state) {}
+static void runPairing(DeviceState &state) {}
 
 static void runConnected(DeviceState &state)
 {

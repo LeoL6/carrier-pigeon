@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../states/States.h"
 #include "../message/Message.h"
 
 namespace Display {
@@ -11,7 +12,7 @@ namespace Display {
     // <=====================>
     // Full Screen Functions
     // <=====================>
-    void drawActiveScreen();
+    void drawActiveScreen(DeviceState &state);
     void drawSleepingScreen();
 
     // <=====================>

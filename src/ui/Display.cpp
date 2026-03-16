@@ -2,8 +2,9 @@
 // enable or disable GxEPD2_GFX base class
 #define ENABLE_GxEPD2_GFX 0
 
-#include <Arduino.h>
 #include "Display.h"
+
+#include <Arduino.h>
 #include <SPI.h>
 #include <GxEPD2_BW.h>
 #include <GxEPD2_3C.h>
@@ -485,7 +486,40 @@ namespace Display
     display.setRotation(1);
   }
 
-  void drawActiveScreen() 
+  static void drawDeviceState(DeviceState &state)
+  {
+    constexpr int STATE_X = 7;
+    constexpr int STATE_Y = 7;
+    constexpr int STATE_W = 202;
+    constexpr int STATE_H = 36;
+    constexpr int MARGIN  = 2;
+
+    char* stateName = "";
+
+    switch(state)
+    {
+      case STATE_CONFIG:
+        stateName = "Config";
+        break;
+      case STATE_PAIRING:
+        stateName = "Pairing";
+        break;
+      case STATE_CONNECTED:
+        stateName = "Connected";
+        break;
+    }
+
+    display.setPartialWindow(STATE_X, STATE_Y, STATE_W, STATE_H);
+    display.firstPage();
+    do
+    {
+      display.setCursor(STATE_X + MARGIN, STATE_Y + MARGIN);
+      display.print(stateName);
+    }
+    while (display.nextPage());
+  }
+
+  void drawActiveScreen(DeviceState &state) 
   {
     // 416x240
     display.setFont(&FreeSansBold9pt7b);
@@ -510,6 +544,8 @@ namespace Display
       display.drawRect(INNER_BOX_X, INNER_BOX_Y, INNER_BOX_W, INNER_BOX_H, GxEPD_BLACK);
     }
     while (display.nextPage());
+
+    drawDeviceState(state);
   }
 
   void drawSleepingScreen()
@@ -610,31 +646,9 @@ namespace Display
     }
   }
 
-  // void drawReceived(const char* text, int y)
-  // {
-  //   constexpr int LEFT_BOUND = 14;
-
-  //   Serial.println("Received");
-  //   Serial.println(text);
-
-  //   display.setCursor(LEFT_BOUND, y);
-  //   display.print(text);
-  // }
-
-  // void drawTransmitted(const char* text, int y)
-  // {
-  //   constexpr int LEFT_BOUND = 32;
-
-  //   Serial.println("Sent");
-  //   Serial.println(text);
-
-  //   display.setCursor(LEFT_BOUND, y);
-  //   display.print(text);
-  // }
-
   void drawTimer(int startMs) 
   {
-    
+
   }
 
   void drawMessage(Message& msg, int y)
@@ -693,58 +707,3 @@ namespace Display
     }
     while (display.nextPage());
   }
-
-  // void Display::updateInputBuffer(const char* buffer, size_t length)
-  // {
-  //     display.setCursor(0, 50);
-  //     for (size_t i = 0; i < length; i++) {
-  //         display.print(buffer[i]);
-  //     }
-  // }
-}
-
-// void updateBattery()
-// {
-//   if (millis() - lastBatteryRead >= BATTERY_INTERVAL) {
-//     lastBatteryRead = millis();
-
-//     float batteryVoltage = 0.0;
-//     int batteryPercent = 0;
-
-//     batteryVoltage = readBatteryVoltage();
-//     batteryPercent = voltageToPercent(batteryVoltage);
-
-//     display.setPartialWindow(BAT_X, BAT_Y, BAT_W, BAT_H);
-//     display.firstPage();
-//     do
-//     {
-//       display.fillRect(BAT_X, BAT_Y, BAT_W, BAT_H, GxEPD_WHITE);
-//       display.drawRect(BAT_X, BAT_Y, BAT_W, BAT_H, GxEPD_BLACK);
-
-//       display.setCursor(BAT_X + 5, BAT_Y + 18);
-//       display.print(batteryPercent);
-//       display.print("%");
-//     }
-//     while (display.nextPage());
-//   }
-// }
-
-// oid updateDisplay()
-// {
-//   if (millis() - lastDisplayUpdate < DISPLAY_INTERVAL)
-//     return;
-
-//   lastDisplayUpdate = millis();
-
-//   display.setPartialWindow(TB_X, TB_Y, TB_W, TB_H);
-//   display.firstPage();
-//   do
-//   {
-//     display.fillRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_WHITE);
-//     display.drawRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_BLACK);
-
-//     display.setCursor(TB_X + 5, TB_Y + 18);
-//     display.print(keyBuffer);
-//   }
-//   while (display.nextPage());
-// }
