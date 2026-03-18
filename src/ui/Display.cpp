@@ -488,12 +488,13 @@ namespace Display
 
   static void drawDeviceState(DeviceState &state)
   {
-    constexpr int STATE_X = 7;
-    constexpr int STATE_Y = 7;
-    constexpr int STATE_W = 202;
-    constexpr int STATE_H = 36;
-    constexpr int MARGIN  = 2;
+    constexpr int STATE_X = 12;
+    constexpr int STATE_Y = 12;
+    constexpr int STATE_H = 26;
 
+    constexpr int TEXT_MARGIN = 5;
+    constexpr int LINE_HEIGHT = 18;
+    
     char* stateName = "";
 
     switch(state)
@@ -509,14 +510,14 @@ namespace Display
         break;
     }
 
-    display.setPartialWindow(STATE_X, STATE_Y, STATE_W, STATE_H);
-    display.firstPage();
-    do
-    {
-      display.setCursor(STATE_X + MARGIN, STATE_Y + MARGIN);
-      display.print(stateName);
-    }
-    while (display.nextPage());
+    int16_t x1, y1;
+    uint16_t w, h;
+
+    display.getTextBounds(stateName, STATE_X, STATE_Y, &x1, &y1, &w, &h);
+
+    display.drawRect(STATE_X, STATE_Y, w + (TEXT_MARGIN * 2), STATE_H, GxEPD_BLACK);
+    display.setCursor(STATE_X + TEXT_MARGIN, STATE_Y + LINE_HEIGHT);
+    display.print(stateName);
   }
 
   void drawActiveScreen(DeviceState &state) 
@@ -541,11 +542,10 @@ namespace Display
     {
       display.fillScreen(GxEPD_WHITE);
       display.drawRect(OUTLINE_X, OUTLINE_Y, OUTLINE_W, OUTLINE_H, GxEPD_BLACK);
+      drawDeviceState(state);
       display.drawRect(INNER_BOX_X, INNER_BOX_Y, INNER_BOX_W, INNER_BOX_H, GxEPD_BLACK);
     }
     while (display.nextPage());
-
-    drawDeviceState(state);
   }
 
   void drawSleepingScreen()
@@ -573,6 +573,9 @@ namespace Display
     constexpr int BAT_W = 60;
     constexpr int BAT_H = 26;
 
+    constexpr int TEXT_MARGIN = 5;
+    constexpr int LINE_HEIGHT = 18;
+
     display.setFont(&FreeSansBold9pt7b);
     display.setPartialWindow(BAT_X, BAT_Y, BAT_W, BAT_H);
     display.firstPage();
@@ -581,7 +584,7 @@ namespace Display
       display.fillRect(BAT_X, BAT_Y, BAT_W, BAT_H, GxEPD_WHITE);
       display.drawRect(BAT_X, BAT_Y, BAT_W, BAT_H, GxEPD_BLACK);
 
-      display.setCursor(BAT_X + 5, BAT_Y + 18);
+      display.setCursor(BAT_X + TEXT_MARGIN, BAT_Y + LINE_HEIGHT);
       if (charging)
       {
         display.print("CHRG");
@@ -646,9 +649,35 @@ namespace Display
     }
   }
 
-  void drawTimer(int startMs) 
+  void updateTimer(int elapsed) 
   {
+    constexpr unsigned int LINE_HEIGHT = 18;
+    constexpr unsigned int MARGIN      = 2;
+    constexpr unsigned int Y           = 160;
 
+    char buffer[32];
+
+    unsigned int seconds = elapsed % 60;
+    unsigned int minutes = elapsed / 60;
+
+    sprintf(buffer, "Waiting: %02d:%02d", minutes, seconds);
+
+    int16_t x1, y1;
+    uint16_t w, h;
+
+    display.getTextBounds(buffer, 0, Y, &x1, &y1, &w, &h);
+
+    int x = (SCREEN_WIDTH - w) / 2 - x1;
+
+    display.setFont(&FreeSans9pt7b);
+    display.setPartialWindow(x, Y - LINE_HEIGHT - MARGIN, w + (MARGIN * 2), h + (MARGIN * 2));
+    display.firstPage();
+    do
+    { 
+      display.setCursor(x, Y);
+      display.print(buffer);
+    }
+    while (display.nextPage());
   }
 
   void drawMessage(Message& msg, int y)
@@ -707,3 +736,4 @@ namespace Display
     }
     while (display.nextPage());
   }
+}

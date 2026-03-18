@@ -4,4 +4,6 @@
 namespace StateMachine {
     void init();
     void update(DeviceState &state);
+
+    static unsigned long pairingStartTime = 0;
 }

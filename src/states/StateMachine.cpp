@@ -71,29 +71,6 @@ void StateMachine::update(DeviceState &state)
     }
 }
 
-static void enterState(DeviceState state)
-{
-    switch (state)
-    {
-        case STATE_SLEEPING:
-            Display::drawSleepingScreen();
-            Messages::clearInputBuffer();
-            // memset(keyBuffer, 0, sizeof(keyBuffer));
-            // bufferIndex = 0;
-            break;
-
-        default:
-            Serial.println("ENTERING");
-            Serial.println(state);
-            Battery::wakeUp();
-            Display::drawActiveScreen(state);
-            if (state == STATE_CONNECTED) Display::clearMessageLines();
-
-            // MAYBE IF STATE == CONFIG THEN DO SUM W THE TIME.MS HERE, ONCE
-            break;
-    }
-}
-
 // This interval is placed inside of StateMachine because it is application level...
 // Whereas: the interval for updateInputBuffer is inside of the Display module because updating too quick is a hardware constraint, not application choice.
 static void updateBattery()
@@ -109,6 +86,32 @@ static void updateBattery()
         bool charging = Battery::isUsbConnected();
         Display::updateBattery(percentage, charging);
     }
+}
+
+static void enterPairing() {
+    StateMachine::pairingStartTime = millis();
+}
+
+static void updatePairingTimer()
+{
+    static unsigned long lastUpdate = 0;
+    const unsigned long interval = 1000; 
+
+    if (millis() - lastUpdate >= interval)
+    {
+        lastUpdate = millis();
+
+        int elapsed = (lastUpdate - StateMachine::pairingStartTime) / 1000;
+        
+        Display::updateTimer(elapsed);
+    }
+}
+
+static void updatePairing()
+{
+    updatePairingTimer();
+    // HANDSHAKE CODE
+    // DISPLAY.DRAWPAIRING TIMER CODE
 }
 
 static void pollLoRa()
@@ -141,6 +144,33 @@ static void pollLoRa()
 
             // Display::showMessage((char*)buffer);
         }
+    }
+}
+
+static void enterState(DeviceState state)
+{
+    if (state == STATE_SLEEPING)
+    {
+        Display::drawSleepingScreen();
+        Messages::clearInputBuffer();
+        return;
+    }
+
+    Serial.println("ENTERING");
+    Serial.println(state);
+    Battery::wakeUp();
+    // LATER CHANGE THIS SO THAT DRAW ACTIVE SCREEN IS STATIC AND DRAWN FROM WITHIN THE DISPLAY MODULE AND EACH STATE HAS THEIR OWN THING STATE METHOD U CAN CALL SO THAT U CAN DO STUFF LIEK TEXT ON SCREENS FOR CONFIG AND PAIRING
+    Display::drawActiveScreen(state);
+
+    switch (state)
+    {
+        case STATE_CONNECTED:
+            Display::clearMessageLines();
+            break;
+
+        case STATE_PAIRING:
+            enterPairing();
+            break;
     }
 }
 
@@ -190,13 +220,26 @@ static void handleInput(const KeyEvent& event, DeviceState &state)
             break;
 
         case KeyEventType::ENTER:
-            sendMessage();
+            switch (state)
+            {
+                case STATE_CONNECTED:
+                    sendMessage();
+                    break;
+
+                case STATE_CONFIG:
+                    if (Messages::getInputLength() == 12) { state = STATE_PAIRING; }
+            }
             break;
 
         case KeyEventType::ESCAPE:
             switch (state)
             {
                 case STATE_CONNECTED:
+                    // state = STATE_CONFIG;
+                    state = STATE_PAIRING;
+                    break;
+
+                case STATE_PAIRING:
                     state = STATE_CONFIG;
                     break;
 
@@ -205,73 +248,9 @@ static void handleInput(const KeyEvent& event, DeviceState &state)
                     break;
             }
             break;
-
-        // case KeyEventType::ARROW_UP:
-        //     messages.scrollUp();
-        //     break;
-
-        // case KeyEventType::ARROW_DOWN:
-        //     messages.scrollDown();
-        //     break;
-
         default:
             break;
     }
-    // char key;
-    // if (Keyboard::read(key))
-    // {
-    //     switch (key)
-    //     {
-    //         case 13:
-    //             if (bufferIndex > 0) 
-    //             {
-    //                 Serial.println("Enter");
-    //                 // lora_manager::sendMessage(keyBuffer);
-    //                 bufferIndex = 0;
-    //                 keyBuffer[0] = '\0';
-    //             }
-    //             break;
-
-    //         case 8: 
-    //             if (bufferIndex > 0) 
-    //             {
-    //                 bufferIndex--;
-    //                 keyBuffer[bufferIndex] = '\0';
-    //             }
-    //             break;
-
-    //         case 27:
-    //             //do turn off stuff
-    //             Serial.println("Hibernate");
-    //             state = STATE_SLEEPING;
-    //             return;
-
-    //         case 180:
-    //             Serial.println("LEFT");
-    //             break;
-
-    //         case 181:
-    //             Serial.println("UP");
-    //             break;
-
-    //         case 182:
-    //             Serial.println("DOWN");
-    //             break;
-
-    //         case 183:
-    //             Serial.println("RIGHT");
-    //             break;
-
-    //         default:
-    //             if (bufferIndex < sizeof(keyBuffer) - 1)
-    //             {
-    //                 keyBuffer[bufferIndex++] = (char)key;
-    //                 keyBuffer[bufferIndex] = '\0';
-    //                 Serial.printf("Buffer: %s\n", keyBuffer);
-    //             }
-    //             break;
-    //     }
-    // }
 }
 
 static void runConfig(DeviceState &state) 
@@ -287,7 +266,20 @@ static void runConfig(DeviceState &state)
     updateBattery();
 }
 
-static void runPairing(DeviceState &state) {}
+static void runPairing(DeviceState &state) 
+{
+    KeyEvent event;
+
+    if (Keyboard::getEvent(event))
+    {
+        handleInput(event, state);
+    }
+
+    updatePairing();
+
+    // Update battery periodically (Every 3s)
+    updateBattery();
+}
 
 static void runConnected(DeviceState &state)
 {
