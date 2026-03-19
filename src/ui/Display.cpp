@@ -488,9 +488,9 @@ namespace Display
 
   static void drawMessageInputBuffer()
   {
-    constexpr int TB_X = 12;
-    constexpr int TB_Y = 202;
-    constexpr int TB_W = 392;
+    constexpr int TB_X = 18;
+    constexpr int TB_Y = 196;
+    constexpr int TB_W = 380;
     constexpr int TB_H = 26;
 
     display.fillRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_WHITE);
@@ -499,9 +499,9 @@ namespace Display
 
   void updateMessageInputBuffer(const char* keyBuffer)
   {
-    constexpr int TB_X = 12;
-    constexpr int TB_Y = 202;
-    constexpr int TB_W = 392;
+    constexpr int TB_X = 18;
+    constexpr int TB_Y = 196;
+    constexpr int TB_W = 380;
     constexpr int TB_H = 26;
 
     display.setFont(&FreeSans9pt7b);
@@ -511,7 +511,7 @@ namespace Display
     {
       display.fillRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_WHITE);
       display.drawRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_BLACK);
-      display.setCursor(TB_X + 3, TB_Y + 16);
+      display.setCursor(TB_X + 5, TB_Y + 18);
       display.print(keyBuffer);
     }
     while (display.nextPage());
