@@ -486,7 +486,73 @@ namespace Display
     display.setRotation(1);
   }
 
-  static void drawDeviceState(DeviceState &state)
+  static void drawMessageInputBuffer()
+  {
+    constexpr int TB_X = 12;
+    constexpr int TB_Y = 202;
+    constexpr int TB_W = 392;
+    constexpr int TB_H = 26;
+
+    display.fillRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_WHITE);
+    display.drawRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_BLACK);
+  }
+
+  void updateMessageInputBuffer(const char* keyBuffer)
+  {
+    constexpr int TB_X = 12;
+    constexpr int TB_Y = 202;
+    constexpr int TB_W = 392;
+    constexpr int TB_H = 26;
+
+    display.setFont(&FreeSans9pt7b);
+    display.setPartialWindow(TB_X, TB_Y, TB_W, TB_H);
+    display.firstPage();
+    do
+    {
+      display.fillRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_WHITE);
+      display.drawRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_BLACK);
+      display.setCursor(TB_X + 3, TB_Y + 16);
+      display.print(keyBuffer);
+    }
+    while (display.nextPage());
+
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ADD BLINK CURSOR EVENTUALLY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  }
+
+  static void drawConfigInputBuffer()
+  {
+    constexpr int TB_X = 104;
+    constexpr int TB_Y = 140;
+    constexpr int TB_W = 184;
+    constexpr int TB_H = 26;
+
+    // ADD UNDERLINES FOR EACH CHAR
+
+    display.fillRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_WHITE);
+    display.drawRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_BLACK);
+  }
+
+  void updateConfigInputBuffer(const char* keyBuffer)
+  { 
+    constexpr int TB_X = 104;
+    constexpr int TB_Y = 140;
+    constexpr int TB_W = 184;
+    constexpr int TB_H = 26;
+
+    display.setFont(&FreeSans9pt7b);
+    display.setPartialWindow(TB_X, TB_Y, TB_W, TB_H);
+    display.firstPage();
+    do
+    {
+      display.fillRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_WHITE);
+      display.drawRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_BLACK);
+      display.setCursor(TB_X + 5, TB_Y + 18);
+      display.print(keyBuffer);
+    }
+    while (display.nextPage());
+  }
+
+  static void drawDeviceState(char* stateName)
   {
     constexpr int STATE_X = 12;
     constexpr int STATE_Y = 12;
@@ -495,20 +561,20 @@ namespace Display
     constexpr int TEXT_MARGIN = 5;
     constexpr int LINE_HEIGHT = 18;
     
-    char* stateName = "";
+    // char* stateName = "";
 
-    switch(state)
-    {
-      case STATE_CONFIG:
-        stateName = "Config";
-        break;
-      case STATE_PAIRING:
-        stateName = "Pairing";
-        break;
-      case STATE_CONNECTED:
-        stateName = "Connected";
-        break;
-    }
+    // switch(state)
+    // {
+    //   case STATE_CONFIG:
+    //     stateName = "Config";
+    //     break;
+    //   case STATE_PAIRING:
+    //     stateName = "Pairing";
+    //     break;
+    //   case STATE_CONNECTED:
+    //     stateName = "Connected";
+    //     break;
+    // }
 
     int16_t x1, y1;
     uint16_t w, h;
@@ -520,12 +586,13 @@ namespace Display
     display.print(stateName);
   }
 
-  void drawActiveScreen(DeviceState &state) 
+  static void drawActiveScreen(char* stateName) 
   {
     // 416x240
     display.setFont(&FreeSansBold9pt7b);
     display.setTextColor(GxEPD_BLACK);
 
+    // MOVE ALL THESE CONSTS TO HEADER
     constexpr int OUTLINE_X = 6;
     constexpr int OUTLINE_Y = 6;
     constexpr int OUTLINE_W = 404;
@@ -536,14 +603,75 @@ namespace Display
     constexpr int INNER_BOX_W = 392;
     constexpr int INNER_BOX_H = 184;
 
+
+    display.fillScreen(GxEPD_WHITE);
+    display.drawRect(OUTLINE_X, OUTLINE_Y, OUTLINE_W, OUTLINE_H, GxEPD_BLACK);
+    drawDeviceState(stateName);
+    display.drawRect(INNER_BOX_X, INNER_BOX_Y, INNER_BOX_W, INNER_BOX_H, GxEPD_BLACK);
+  }
+
+  void drawConnectedScreen()
+  {
     display.setFullWindow();
     display.firstPage();
     do
     {
-      display.fillScreen(GxEPD_WHITE);
-      display.drawRect(OUTLINE_X, OUTLINE_Y, OUTLINE_W, OUTLINE_H, GxEPD_BLACK);
-      drawDeviceState(state);
-      display.drawRect(INNER_BOX_X, INNER_BOX_Y, INNER_BOX_W, INNER_BOX_H, GxEPD_BLACK);
+      drawActiveScreen("Connected");
+      drawMessageInputBuffer();
+    }
+    while (display.nextPage());
+  }
+
+  void drawPairingScreen()
+  {
+    constexpr unsigned int Y = 112;
+
+    int16_t x1, y1;
+    uint16_t w, h;
+
+    char* title = "Waiting for peer to connect...";
+
+    display.setFont(&FreeSansBold9pt7b);
+    display.setFullWindow();
+    display.firstPage();
+    do
+    {
+      display.getTextBounds(title, 0, Y, &x1, &y1, &w, &h);
+
+      int x = (SCREEN_WIDTH - w) / 2 - x1;
+
+      drawActiveScreen("Pairing");
+
+      display.setCursor(x, Y);
+      display.print(title);
+    }
+    while (display.nextPage());
+  }
+
+  void drawConfigScreen()
+  {
+    constexpr unsigned int Y = 112;
+
+    int16_t x1, y1;
+    uint16_t w, h;
+
+    char* title = "Enter 12 character passphrase";
+
+    display.setFont(&FreeSansBold9pt7b);
+    display.setFullWindow();
+    display.firstPage();
+    do
+    {
+      display.getTextBounds(title, 0, Y, &x1, &y1, &w, &h);
+
+      int x = (SCREEN_WIDTH - w) / 2 - x1;
+
+      drawActiveScreen("Config");
+
+      display.setCursor(x, Y);
+      display.print(title);
+
+      drawConfigInputBuffer();
     }
     while (display.nextPage());
   }
@@ -598,34 +726,35 @@ namespace Display
     while (display.nextPage());
   }
 
-  void updateInputBuffer(const char* keyBuffer)
+  void updateTimer(int elapsed) 
   {
-    // static unsigned long lastUpdate = 0;
-    // const unsigned long INTERVAL = 20;
+    // constexpr unsigned int LINE_HEIGHT = 18;
+    constexpr unsigned int MARGIN      = 2;
+    constexpr unsigned int Y           = 160;
 
-    // if (millis() - lastUpdate < INTERVAL) return;
+    char buffer[32];
 
-    // lastUpdate = millis();
+    unsigned int seconds = elapsed % 60;
+    unsigned int minutes = elapsed / 60;
 
-    constexpr int TB_X = 12;
-    constexpr int TB_Y = 202;
-    constexpr int TB_W = 392;
-    constexpr int TB_H = 26;
+    sprintf(buffer, "%02d:%02d", minutes, seconds);
 
-    display.setFont(&FreeSansBold9pt7b);
-    display.setPartialWindow(TB_X, TB_Y, TB_W, TB_H);
+    int16_t x1, y1;
+    uint16_t w, h;
+
+    display.getTextBounds(buffer, 0, Y, &x1, &y1, &w, &h);
+
+    int x = (SCREEN_WIDTH - w) / 2 - x1;
+
+    display.setFont(&FreeSans9pt7b);
+    display.setPartialWindow(x, Y - h - MARGIN, w + (MARGIN * 2), h + (MARGIN * 2));
     display.firstPage();
     do
-    {
-      display.fillRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_WHITE);
-      display.drawRect(TB_X, TB_Y, TB_W, TB_H, GxEPD_BLACK);
-
-      display.setCursor(TB_X + 5, TB_Y + 18);
-      display.print(keyBuffer);
+    { 
+      display.setCursor(x, Y);
+      display.print(buffer);
     }
     while (display.nextPage());
-
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ADD BLINK CURSOR EVENTUALLY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   }
 
   void addMessage(const Message& msg)
@@ -647,37 +776,6 @@ namespace Display
         screenLines[i].text[0] = '\0';
         screenLines[i].outgoing = false;
     }
-  }
-
-  void updateTimer(int elapsed) 
-  {
-    constexpr unsigned int LINE_HEIGHT = 18;
-    constexpr unsigned int MARGIN      = 2;
-    constexpr unsigned int Y           = 160;
-
-    char buffer[32];
-
-    unsigned int seconds = elapsed % 60;
-    unsigned int minutes = elapsed / 60;
-
-    sprintf(buffer, "Waiting: %02d:%02d", minutes, seconds);
-
-    int16_t x1, y1;
-    uint16_t w, h;
-
-    display.getTextBounds(buffer, 0, Y, &x1, &y1, &w, &h);
-
-    int x = (SCREEN_WIDTH - w) / 2 - x1;
-
-    display.setFont(&FreeSans9pt7b);
-    display.setPartialWindow(x, Y - LINE_HEIGHT - MARGIN, w + (MARGIN * 2), h + (MARGIN * 2));
-    display.firstPage();
-    do
-    { 
-      display.setCursor(x, Y);
-      display.print(buffer);
-    }
-    while (display.nextPage());
   }
 
   void drawMessage(Message& msg, int y)

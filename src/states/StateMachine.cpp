@@ -88,7 +88,37 @@ static void updateBattery()
     }
 }
 
+static void sendMessage()
+{
+    if (!Messages::isInputBufferEmpty())
+    {
+        const char* inputBuffer = Messages::getInputBuffer();
+
+        Message msg;
+        strncpy(msg.text, inputBuffer, MAX_MESSAGE_LEN);
+        msg.outgoing = true;
+
+        Messages::push(msg);
+        LoRa::sendMessage(inputBuffer);
+        Messages::clearInputBuffer();
+        Display::drawMessages();
+    }
+}
+
 static void enterPairing() {
+    const char* inputBuffer = Messages::getInputBuffer();
+
+    // SEND THIS INPUT BUFFER OFF TO PROTOCOL OR HANDSHAKE RELATED FUNCTION OR CRYPTO?
+
+    // Message msg;
+    // strncpy(msg.text, inputBuffer, MAX_MESSAGE_LEN);
+    // msg.outgoing = true;
+
+    // Messages::push(msg);
+    // LoRa::sendMessage(inputBuffer);
+
+    Messages::clearInputBuffer();
+
     StateMachine::pairingStartTime = millis();
 }
 
@@ -159,17 +189,22 @@ static void enterState(DeviceState state)
     Serial.println("ENTERING");
     Serial.println(state);
     Battery::wakeUp();
-    // LATER CHANGE THIS SO THAT DRAW ACTIVE SCREEN IS STATIC AND DRAWN FROM WITHIN THE DISPLAY MODULE AND EACH STATE HAS THEIR OWN THING STATE METHOD U CAN CALL SO THAT U CAN DO STUFF LIEK TEXT ON SCREENS FOR CONFIG AND PAIRING
-    Display::drawActiveScreen(state);
+    // Display::drawActiveScreen(state);
 
     switch (state)
     {
         case STATE_CONNECTED:
+            Display::drawConnectedScreen();
             Display::clearMessageLines();
             break;
 
         case STATE_PAIRING:
+            Display::drawPairingScreen();
             enterPairing();
+            break;
+        
+        case STATE_CONFIG:
+            Display::drawConfigScreen();
             break;
     }
 }
@@ -184,25 +219,7 @@ static void runSleeping(DeviceState &state)
     if (Keyboard::getEvent(event))
     {
         // Wake on any key
-        state = STATE_CONNECTED;
-        // state = STATE_CONFIG;
-    }
-}
-
-static void sendMessage()
-{
-    if (!Messages::isInputBufferEmpty())
-    {
-        const char* inputBuffer = Messages::getInputBuffer();
-
-        Message msg;
-        strncpy(msg.text, inputBuffer, MAX_MESSAGE_LEN);
-        msg.outgoing = true;
-
-        Messages::push(msg);
-        LoRa::sendMessage(inputBuffer);
-        Messages::clearInputBuffer();
-        Display::drawMessages();
+        state = STATE_CONFIG;
     }
 }
 
@@ -228,6 +245,7 @@ static void handleInput(const KeyEvent& event, DeviceState &state)
 
                 case STATE_CONFIG:
                     if (Messages::getInputLength() == 12) { state = STATE_PAIRING; }
+                    break;
             }
             break;
 
@@ -235,8 +253,7 @@ static void handleInput(const KeyEvent& event, DeviceState &state)
             switch (state)
             {
                 case STATE_CONNECTED:
-                    // state = STATE_CONFIG;
-                    state = STATE_PAIRING;
+                    state = STATE_CONFIG;
                     break;
 
                 case STATE_PAIRING:
@@ -264,6 +281,12 @@ static void runConfig(DeviceState &state)
 
     // Update battery periodically (Every 3s)
     updateBattery();
+
+    if (Messages::isInputDirty())
+    {
+        Display::updateConfigInputBuffer(Messages::getInputBuffer());
+        Messages::clearInputDirty();
+    }
 }
 
 static void runPairing(DeviceState &state) 
@@ -308,10 +331,9 @@ static void runConnected(DeviceState &state)
         Display::drawMessages();
     }
 
-    // Update UI with buffer content periodically (Every 20ms) CHANGED THIS TO DIRTY FLAGS INSTEADDDD
     if (Messages::isInputDirty())
     {
-        Display::updateInputBuffer(Messages::getInputBuffer());
+        Display::updateMessageInputBuffer(Messages::getInputBuffer());
         Messages::clearInputDirty();
     }
 }

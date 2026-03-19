@@ -12,14 +12,18 @@ namespace Display {
     // <=====================>
     //   Full Screen Functions
     // <=====================>
-    void drawActiveScreen(DeviceState &state);
+    // void drawActiveScreen(DeviceState &state);
+    void drawConnectedScreen();
+    void drawPairingScreen();
+    void drawConfigScreen();
     void drawSleepingScreen();
 
     // <=====================>
     //   Partial Screen Functions
     // <=====================>
     void updateBattery(int percentage, bool charging);
-    void updateInputBuffer(const char* keyBuffer);
+    void updateMessageInputBuffer(const char* keyBuffer);
+    void updateConfigInputBuffer(const char* keyBuffer);
     void updateTimer(int elapsed);
 
     // <=====================>
