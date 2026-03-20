@@ -1,16 +1,24 @@
 #pragma once
+#include <cstdint>
+#include <cstddef>
 
-enum class PacketType : uint8_t
+namespace Packet
 {
-    CHAT,
-    HELLO,
-    KEY,
-    CONFIRM
-};
+    enum Type : uint8_t
+    {
+        HELLO = 1,
+        HELLO_ACK = 2,
+        AUTH = 3,
+        AUTH_ACK = 4,
+        DATA = 5
+    };
 
-struct Packet
-{
-    uint8_t type;
-    uint8_t length;
-    uint8_t payload[220];
-};
+    struct Packet
+    {
+        Type type;
+        uint8_t length;
+        uint8_t* payload;
+    };
+
+    bool parse(uint8_t* data, size_t len, Packet& outPkt);
+}

@@ -17,9 +17,14 @@ namespace LoRa
   static constexpr bool LORA_IQ_INVERSION_ON       = false; 
 
   // <=========================>
-  //   Radio event structure
+  //   Radio Events
   // <=========================>
   RadioEvents_t RadioEvents;
+
+  // <=========================>
+  //   Callback Variables
+  // <=========================>
+  static ReceiveCallback onReceiveCb = nullptr;
 
   // <=========================>
   //   TX Variables
@@ -33,14 +38,6 @@ namespace LoRa
   static uint8_t rxBuffer[LoRa::BUFFER_SIZE];
   static uint16_t rxSize = 0;
   static volatile bool messageAvailable = false;
-
-  // struct Message
-  // {
-  //     uint8_t data[256];
-  //     uint16_t size;
-  //     int16_t rssi;
-  //     int8_t snr;
-  // };
 
   // <=========================>
   //   Forward declarations
@@ -85,22 +82,47 @@ namespace LoRa
     Radio.Rx(0);  // Start listening immediately
   }
 
-  // Send LoRa message
-  void sendMessage(const char* msg)
+  void setReceiveCallback(ReceiveCallback cb)
+  {
+    onReceiveCb = cb;
+  }
+
+  void sendPacket(uint8_t type, const uint8_t* payload, size_t payloadLen)
   {
     if (txInProgress) return;
 
-    size_t size = strlen(msg);
-    if (size > BUFFER_SIZE)
-        size = BUFFER_SIZE;
+    if (payloadLen > BUFFER_SIZE - 2)
+        return; // too big
 
-    memcpy(txBuffer, msg, size);
+    txBuffer[0] = type;
+    txBuffer[1] = payloadLen;
+
+    if (payloadLen > 0)
+        memcpy(&txBuffer[2], payload, payloadLen);
+
+    size_t totalSize = payloadLen + 2;
 
     txInProgress = true;
 
-    Serial.println("Sending...");
-    Radio.Send(txBuffer, size);
+    Serial.println("Sending packet...");
+    Radio.Send(txBuffer, totalSize);
   }
+
+  // void sendMessage(const char* msg)
+  // {
+  //   if (txInProgress) return;
+
+  //   size_t size = strlen(msg);
+  //   if (size > BUFFER_SIZE)
+  //       size = BUFFER_SIZE;
+
+  //   memcpy(txBuffer, msg, size);
+
+  //   txInProgress = true;
+
+  //   Serial.println("Sending...");
+  //   Radio.Send(txBuffer, size);
+  // }
 
   void onTxDone() 
   {
@@ -112,12 +134,17 @@ namespace LoRa
 
   void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) 
   {
-    if (size > BUFFER_SIZE)
-      size = BUFFER_SIZE;
+    // if (size > BUFFER_SIZE)
+    //   size = BUFFER_SIZE;
 
-    memcpy(rxBuffer, payload, size);
-    rxSize = size;
-    messageAvailable = true;
+    // memcpy(rxBuffer, payload, size);
+    // rxSize = size;
+    // messageAvailable = true;
+
+    if (onReceiveCb)
+    {
+      onReceiveCb(payload, size);
+    }
 
     // Switch back to receive mode
     Radio.Rx(0);

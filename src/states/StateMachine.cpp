@@ -14,26 +14,40 @@
 //   Domain Modules
 // <===================>
 #include "../message/Messages.h"
+#include "../protocol/Packet.h"
+#include "../protocol/Protocol.h"
 
 // ON FINAL PUSH REMOVE THIS COMMENT AND REMOVE ALL SERIAL PRINTLNS
 
 static DeviceState previousState = STATE_SLEEPING;
 
-// Forward declarations
+// <======================>
+//   Forward declarations
+// <======================>
 static void enterState(DeviceState state);
 static void runSleeping(DeviceState &state);
 static void runConfig(DeviceState &state);
 static void runPairing(DeviceState &state);
 static void runConnected(DeviceState &state);
 
-// static char keyBuffer[64];
-// static int bufferIndex = 0;
+// <======================>
+//   Radio Callback
+// <======================>
+static void onRadioPacket(uint8_t* data, size_t len)
+{
+    Packet::Packet pkt;
+
+    if (!Packet::parse(data, len, pkt)) return;
+
+    Protocol::onReceive(pkt);
+}
 
 void StateMachine::init()
 {
     Keyboard::init();
     Display::init();
     LoRa::init();
+    LoRa::setReceiveCallback(onRadioPacket);
 
     enterState(STATE_SLEEPING);
 }
@@ -99,7 +113,18 @@ static void sendMessage()
         msg.outgoing = true;
 
         Messages::push(msg);
-        LoRa::sendMessage(inputBuffer);
+
+        size_t len = strlen(inputBuffer);
+
+        if (len > LoRa::BUFFER_SIZE - 2)
+            len = LoRa::BUFFER_SIZE - 2;
+
+        LoRa::sendPacket(
+            Packet::DATA,
+            (const uint8_t*)inputBuffer,
+            strlen(inputBuffer)
+        );
+        
         Messages::clearInputBuffer();
         Display::drawMessages();
     }
@@ -153,27 +178,27 @@ static void pollLoRa()
     {
         lastUpdate = millis();
 
-        uint8_t buffer[MAX_MESSAGE_LEN];
+        // uint8_t buffer[MAX_MESSAGE_LEN];
 
-        if (LoRa::isMessageAvailable())
-        {
-            uint16_t size = LoRa::getMessage(buffer);
+        // if (LoRa::isMessageAvailable())
+        // {
+        //     uint16_t size = LoRa::getMessage(buffer);
 
-            if (size < LoRa::BUFFER_SIZE)
-                buffer[size] = '\0';
+        //     if (size < LoRa::BUFFER_SIZE)
+        //         buffer[size] = '\0';
 
-            Serial.println((char*)buffer);
+        //     Serial.println((char*)buffer);
 
-            Message msg;
+        //     Message msg;
 
-            memcpy(msg.text, buffer, size);
-            msg.text[size] = '\0';
-            msg.outgoing = false;
+        //     memcpy(msg.text, buffer, size);
+        //     msg.text[size] = '\0';
+        //     msg.outgoing = false;
 
-            Messages::push(msg);
+        //     Messages::push(msg);
 
-            // Display::showMessage((char*)buffer);
-        }
+        //     // Display::showMessage((char*)buffer);
+        // }
     }
 }
 
