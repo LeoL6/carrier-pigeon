@@ -33,13 +33,6 @@ namespace LoRa
   static volatile bool txInProgress = false;
 
   // <=========================>
-  //   RX Variables
-  // <=========================>
-  static uint8_t rxBuffer[LoRa::BUFFER_SIZE];
-  static uint16_t rxSize = 0;
-  static volatile bool messageAvailable = false;
-
-  // <=========================>
   //   Forward declarations
   // <=========================>
   static void sendLoRaMessage(const String &msg);
@@ -87,26 +80,34 @@ namespace LoRa
     onReceiveCb = cb;
   }
 
-  void sendPacket(uint8_t type, const uint8_t* payload, size_t payloadLen)
-  {
-    if (txInProgress) return;
+  // void sendPacket(uint8_t type, const uint8_t* payload, size_t payloadLen)
+  // {
+  //   if (txInProgress)
+  //   {
+  //     Serial.println("TX IN PROG");
+  //     return;
+  //   }
 
-    if (payloadLen > BUFFER_SIZE - 2)
-        return; // too big
+  //   if (payloadLen > BUFFER_SIZE - 2)
+  //   {
+  //     Serial.println("BUFFER TOO BIG");
+  //     return; // too big
+  //   }
 
-    txBuffer[0] = type;
-    txBuffer[1] = payloadLen;
+  //   txBuffer[0] = type;
+  //   txBuffer[1] = payloadLen;
 
-    if (payloadLen > 0)
-        memcpy(&txBuffer[2], payload, payloadLen);
+  //   if (payloadLen > 0)
+  //       memcpy(&txBuffer[2], payload, payloadLen);
 
-    size_t totalSize = payloadLen + 2;
+  //   size_t totalSize = payloadLen + 2;
 
-    txInProgress = true;
+  //   txInProgress = true;
 
-    Serial.println("Sending packet...");
-    Radio.Send(txBuffer, totalSize);
-  }
+  //   Serial.println("Sending packet...");
+  //   Radio.Sleep();
+  //   Radio.Send(txBuffer, totalSize);
+  // }
 
   // void sendMessage(const char* msg)
   // {
@@ -126,6 +127,7 @@ namespace LoRa
 
   void onTxDone() 
   {
+    Serial.println("TRANSMIT DONE");
     txInProgress = false;
 
     // Switch back to receive mode
@@ -134,12 +136,7 @@ namespace LoRa
 
   void onRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr) 
   {
-    // if (size > BUFFER_SIZE)
-    //   size = BUFFER_SIZE;
-
-    // memcpy(rxBuffer, payload, size);
-    // rxSize = size;
-    // messageAvailable = true;
+    Serial.println("PACKET RECEIEVED");
 
     if (onReceiveCb)
     {
@@ -170,24 +167,70 @@ namespace LoRa
     Radio.Rx(0);
   }
 
+  static bool isQueueFull()
+  {
+    return ((queueHead + 1) % QUEUE_SIZE) == queueTail;
+  }
+
+  static bool isQueueEmpty()
+  {
+    return queueHead == queueTail;
+  }
+
+  static void sendNow(const QueuedPacket& pkt)
+  {
+    txBuffer[0] = pkt.type;
+    txBuffer[1] = pkt.length;
+
+    if (pkt.length > 0)
+        memcpy(&txBuffer[2], pkt.payload, pkt.length);
+
+    size_t totalSize = pkt.length + 2;
+
+    txInProgress = true;
+
+    Serial.println("Sending packet...");
+    Radio.Send(txBuffer, totalSize);
+  }
+
+  bool enqueuePacket(uint8_t type, const uint8_t* payload, uint8_t len)
+  {
+    if (len > BUFFER_SIZE)
+      return false;
+
+    if (isQueueFull())
+    {
+      Serial.println("QUEUE FULL");
+      return false;
+    }
+
+    QueuedPacket& pkt = sendQueue[queueHead];
+
+    pkt.type = type;
+    pkt.length = len;
+
+    if (len > 0 && payload)
+      memcpy(pkt.payload, payload, len);
+
+    queueHead = (queueHead + 1) % QUEUE_SIZE;
+
+    return true;
+  }
+
   void update() 
   {
-    Radio.IrqProcess(); // Required occasionally for RX/TX Callbacks to be triggered
-  }
+    // Required occasionally for RX/TX Callbacks to be triggered
+    Radio.IrqProcess();
 
-  bool isMessageAvailable()
-  {
-      return messageAvailable;
-  }
+    // Only send if radio is free
+    if (txInProgress) return;
 
-  uint16_t getMessage(uint8_t* buffer)
-  {
-      if (!messageAvailable || !buffer)
-          return 0;
+    if (isQueueEmpty()) return;
 
-      memcpy(buffer, rxBuffer, rxSize);
-      messageAvailable = false;
+    // Dequeue
+    QueuedPacket& pkt = sendQueue[queueTail];
+    queueTail = (queueTail + 1) % QUEUE_SIZE;
 
-      return rxSize;
+    sendNow(pkt);
   }
 }

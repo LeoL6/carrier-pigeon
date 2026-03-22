@@ -560,21 +560,6 @@ namespace Display
 
     constexpr int TEXT_MARGIN = 5;
     constexpr int LINE_HEIGHT = 18;
-    
-    // char* stateName = "";
-
-    // switch(state)
-    // {
-    //   case STATE_CONFIG:
-    //     stateName = "Config";
-    //     break;
-    //   case STATE_PAIRING:
-    //     stateName = "Pairing";
-    //     break;
-    //   case STATE_CONNECTED:
-    //     stateName = "Connected";
-    //     break;
-    // }
 
     int16_t x1, y1;
     uint16_t w, h;

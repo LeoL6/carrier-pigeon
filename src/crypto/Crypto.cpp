@@ -1,4 +1,40 @@
-// include "crypto.h"
+#include "crypto.h"
+
+#include "../message/Messages.h"
+
+namespace Crypto
+{
+  static size_t decrypt(uint8_t* payload, uint8_t length, Message& outMsg)
+  {
+    if (!payload)
+      return 0;
+
+    // Clamp to fit in Message buffer (leave room for null terminator)
+    size_t copyLen = length;
+    if (copyLen >= MAX_MESSAGE_LEN)
+      copyLen = MAX_MESSAGE_LEN - 1;
+
+    memcpy(outMsg.text, payload, copyLen);
+    outMsg.text[copyLen] = '\0';
+
+    outMsg.outgoing = false;
+
+    return copyLen;
+  }
+
+  void onData(const Packet::Packet& pkt)
+  {
+    Message decrypted;
+
+    // Decrypt function
+    size_t len = decrypt(pkt.payload, pkt.length, decrypted);
+
+    if (len == 0) return; // failed / invalid
+
+  // Pass to queue
+    Messages::push(decrypted); 
+  }
+}
 
 // #include "mbedtls/md.h"
 // #include "mbedtls/hkdf.h"
