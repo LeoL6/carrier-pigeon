@@ -5,11 +5,6 @@
 namespace Handshake
 {
   // <========================>
-  //   Device Id (Tie-Breaker)
-  // <========================> 
-  static uint64_t myId;
-
-  // <========================>
   //   Handshake States
   // <========================> 
   enum State
@@ -29,11 +24,11 @@ namespace Handshake
   // <========================>
   //   Handshake Roles
   // <========================> 
-  enum Role
+  enum Role : uint8_t
   {
-    NONE,
-    INITIATOR,
-    RESPONDER
+    NONE = 0,
+    INITIATOR = 1,
+    RESPONDER = 2
   };
 
   // <==========================>
@@ -71,6 +66,7 @@ namespace Handshake
   // <========================>
   //   Helper Functions
   // <========================> 
+  void setPSK(const uint8_t* input);
   uint32_t getPairingStartTime();
   bool isEstablished();
 }

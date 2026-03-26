@@ -1,125 +1,177 @@
-#include "crypto.h"
+#pragma once
 
+#include "Crypto.h"
 #include "../message/Messages.h"
+#include "monocypher/monocypher.h"
+#include "esp_random.h"
 
 namespace Crypto
 {
-  static size_t decrypt(uint8_t* payload, uint8_t length, Message& outMsg)
+  /* Wipe secrets if they are no longer needed */
+  // crypto_wipe(your_sk, 32);
+
+  // <========================>
+  //   Nonce Functions
+  // <========================>
+  void generateNonce(uint8_t* outNonce)
   {
-    if (!payload)
-      return 0;
-
-    // Clamp to fit in Message buffer (leave room for null terminator)
-    size_t copyLen = length;
-    if (copyLen >= MAX_MESSAGE_LEN)
-      copyLen = MAX_MESSAGE_LEN - 1;
-
-    memcpy(outMsg.text, payload, copyLen);
-    outMsg.text[copyLen] = '\0';
-
-    outMsg.outgoing = false;
-
-    return copyLen;
+    // Fill nonce with secure random bytes
+    for (size_t i = 0; i < NONCE_SIZE; i += 4)
+    {
+      uint32_t r = esp_random();
+      memcpy(outNonce + i, &r, sizeof(r));
+    }
   }
 
-  void onData(const Packet::Packet& pkt)
+  // <========================>
+  //   Key-Pair Functions
+  // <========================>
+  void generateKeyPair(uint8_t* outPrivKey, uint8_t* outPubKey)
   {
-    Message decrypted;
+    // Fill private key with secure random bytes
+    for (size_t i = 0; i < KEY_SIZE; i += 4)
+    {
+      uint32_t r = esp_random();
+      memcpy(outPrivKey + i, &r, sizeof(r));
+    }
 
-    // Decrypt function
-    size_t len = decrypt(pkt.payload, pkt.length, decrypted);
+    // Compute corresponding public key
+    crypto_x25519_public_key(outPubKey, outPrivKey);
+  }
 
-    if (len == 0) return; // failed / invalid
+  // <========================>
+  //   Shared Secret Functions
+  // <========================>
+  bool computeSharedSecret(const uint8_t* myPrivKey, const uint8_t* peerPubKey, uint8_t* outSharedSecret)
+  {
+    if (!peerPubKey) return false;
 
-  // Pass to queue
-    Messages::push(decrypted); 
+    crypto_x25519(outSharedSecret, myPrivKey, peerPubKey);
+    return true;
+  }
+
+  // <========================>
+  //   Session Key Functions
+  // <========================>
+  void deriveSessionKey(uint64_t myId, uint64_t peerId, const uint8_t* sharedSecret, const uint8_t* myNonce, const uint8_t* peerNonce, const uint8_t* psk, uint8_t* outKey)
+  {
+    uint8_t buffer[ID_SIZE + ID_SIZE + NONCE_SIZE + NONCE_SIZE + PSK_SIZE];
+    size_t offset = 0;
+
+    const uint8_t* firstNonce;
+    const uint8_t* secondNonce;
+    uint64_t firstId;
+    uint64_t secondId;
+
+    // Deterministic Ordering
+    if (myId < peerId)
+    {
+      firstId = myId;
+      secondId = peerId;
+
+      firstNonce = myNonce;
+      secondNonce = peerNonce;
+    }
+    else
+    {
+      firstId = peerId;
+      secondId = myId;
+
+      firstNonce = peerNonce;
+      secondNonce = myNonce;
+    }
+
+    // Pack IDs
+    for (int i = 0; i < ID_SIZE; i++) {
+      buffer[offset + i] = (firstId >> (8 * (7 - i))) & 0xFF;
+    }
+    offset += 8;
+
+    // Serialize secondId (big-endian)
+    for (int i = 0; i < ID_SIZE; i++) {
+      buffer[offset + i] = (secondId >> (8 * (7 - i))) & 0xFF;
+    }
+    offset += 8;
+
+    // Pack nonces
+    memcpy(buffer + offset, firstNonce, NONCE_SIZE); offset += NONCE_SIZE;
+    memcpy(buffer + offset, secondNonce, NONCE_SIZE); offset += NONCE_SIZE;
+
+    // Optional PSK
+    if (psk != NULL)
+    {
+      memcpy(buffer + offset, psk, PSK_SIZE);
+      offset += PSK_SIZE;
+    }
+
+    // Derive session key
+    crypto_blake2b_keyed(
+      outKey, KEY_SIZE,
+      sharedSecret, KEY_SIZE,
+      buffer, offset
+    );
+  }
+
+  void blake2bMAC(uint8_t* out, const uint8_t* key, const uint8_t* data, size_t dataLen)
+  {
+    crypto_blake2b_keyed(
+      out, KEY_SIZE,
+      key, KEY_SIZE,
+      data, dataLen
+    );
+  }
+
+  int verify32(const uint8_t a[32], const uint8_t b[32])
+  {
+    return crypto_verify32(a, b);
+  }
+
+  void buildCounterNonce(uint64_t counter, uint8_t* nonce)
+  {
+    // Zero the first 4 bytes
+    memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE - Crypto::COUNTER_SIZE);
+
+    // Put counter in last 8 bytes, big-endian
+    for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
+      nonce[Crypto::COUNTER_NONCE_SIZE - Crypto::COUNTER_SIZE + i] = (counter >> (8 * (Crypto::COUNTER_SIZE - 1 - i))) & 0xFF;
+    }
+  }
+
+  void encrypt(const uint8_t* key, uint64_t counter, const uint8_t* plaintext, size_t len, uint8_t* outCiphertext, uint8_t* outTag)
+  {
+    uint8_t nonce[COUNTER_NONCE_SIZE];
+    buildCounterNonce(counter, nonce);
+
+    crypto_aead_ctx ctx;
+    crypto_aead_init_ietf(&ctx, key, nonce);
+
+    crypto_aead_write(
+      &ctx, 
+      outCiphertext, 
+      outTag, 
+      NULL, 0,  // AAD
+      plaintext, 
+      len
+    );
+  }
+
+  bool decrypt(const uint8_t* key, uint64_t counter, const uint8_t* ciphertext, size_t len, const uint8_t* tag, uint8_t* outPlaintext)
+  {
+    uint8_t nonce[COUNTER_NONCE_SIZE];
+    buildCounterNonce(counter, nonce);
+
+    crypto_aead_ctx ctx;
+    crypto_aead_init_ietf(&ctx, key, nonce);
+
+    int ok = crypto_aead_read(
+      &ctx,
+      outPlaintext,
+      tag,
+      NULL, 0, // AAD
+      ciphertext,
+      len
+    );
+
+    return ok == 0; // 0 = success
   }
 }
-
-// #include "mbedtls/md.h"
-// #include "mbedtls/hkdf.h"
-// #include "mbedtls/entropy.h"
-// #include "mbedtls/ctr_drbg.h"
-// #include <string.h>
-
-// // --- RNG Context (static, initialized once) ---
-// static mbedtls_entropy_context entropy;
-// static mbedtls_ctr_drbg_context ctr_drbg;
-// static bool rng_initialized = false;
-
-// static bool crypto_init_rng()
-// {
-//     if (rng_initialized) return true;
-
-//     mbedtls_entropy_init(&entropy);
-//     mbedtls_ctr_drbg_init(&ctr_drbg);
-
-//     const char* pers = "lora_crypto";
-
-//     int ret = mbedtls_ctr_drbg_seed(
-//         &ctr_drbg,
-//         mbedtls_entropy_func,
-//         &entropy,
-//         (const unsigned char*)pers,
-//         strlen(pers)
-//     );
-
-//     if (ret != 0) return false;
-
-//     rng_initialized = true;
-//     return true;
-// }
-
-// // --- Random Bytes ---
-// bool crypto_random_bytes(uint8_t* buf, size_t len)
-// {
-//     if (!crypto_init_rng()) return false;
-
-//     return mbedtls_ctr_drbg_random(&ctr_drbg, buf, len) == 0;
-// }
-
-// // --- HMAC-SHA256 ---
-// bool crypto_hmac_sha256(
-//     const uint8_t* key, size_t key_len,
-//     const uint8_t* data, size_t data_len,
-//     uint8_t* out
-// )
-// {
-//     const mbedtls_md_info_t* md_info =
-//         mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-
-//     if (!md_info) return false;
-
-//     int ret = mbedtls_md_hmac(
-//         md_info,
-//         key, key_len,
-//         data, data_len,
-//         out
-//     );
-
-//     return ret == 0;
-// }
-
-// // --- HKDF-SHA256 ---
-// bool crypto_hkdf_sha256(
-//     const uint8_t* ikm, size_t ikm_len,
-//     const uint8_t* salt, size_t salt_len,
-//     const uint8_t* info, size_t info_len,
-//     uint8_t* out_key, size_t out_len
-// )
-// {
-//     const mbedtls_md_info_t* md_info =
-//         mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-
-//     if (!md_info) return false;
-
-//     int ret = mbedtls_hkdf(
-//         md_info,
-//         salt, salt_len,
-//         ikm, ikm_len,
-//         info, info_len,
-//         out_key, out_len
-//     );
-
-//     return ret == 0;
-// }

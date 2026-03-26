@@ -792,13 +792,18 @@ namespace Display
   // EVENTUALLY REWRITE SO IT DOESNT REQUIRE FULL REDRAW OF REGION
   void drawMessages()
   {
-    constexpr int INNER_BOX_X = 14;
-    constexpr int INNER_BOX_Y = 48;
-    constexpr int INNER_BOX_W = 388;
-    constexpr int INNER_BOX_H = 152;
+    constexpr int CHAT_AREA_X = 14;
+    constexpr int CHAT_AREA_Y = 48;
+    constexpr int CHAT_AREA_W = 388;
+    constexpr int CHAT_AREA_H = 144;
+
+    // constexpr int INNER_BOX_X = 12;
+    // constexpr int INNER_BOX_Y = 44;
+    // constexpr int INNER_BOX_W = 392;
+    // constexpr int INNER_BOX_H = 184;
 
     display.setFont(&FreeSans9pt7b);
-    display.setPartialWindow(INNER_BOX_X, INNER_BOX_Y, INNER_BOX_W, INNER_BOX_H);
+    display.setPartialWindow(CHAT_AREA_X, CHAT_AREA_Y, CHAT_AREA_W, CHAT_AREA_H);
     display.firstPage();
     do
     {
@@ -809,8 +814,7 @@ namespace Display
       {
         if (screenLines[i].text[0] != '\0')
         {
-
-          int y = (INNER_BOX_Y + LINE_HEIGHT) + (cnt * (LINE_HEIGHT + MARGIN));
+          int y = (CHAT_AREA_Y + LINE_HEIGHT) + (cnt * (LINE_HEIGHT + MARGIN));
 
           drawMessage(screenLines[i], y);
           cnt++;

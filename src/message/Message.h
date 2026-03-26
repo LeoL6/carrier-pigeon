@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-#define MAX_MESSAGE_LEN 128
+#define MAX_MESSAGE_LEN 64
 
 struct Message
 {

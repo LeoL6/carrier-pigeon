@@ -6,7 +6,7 @@ namespace LoRa
   //   Constants
   // <========================>
   using ReceiveCallback = void(*)(uint8_t*, size_t);
-  static constexpr int BUFFER_SIZE = 256;
+  static constexpr int BUFFER_SIZE = 128;
   static constexpr int QUEUE_SIZE = 8;
 
   // <========================>

@@ -61,7 +61,7 @@ namespace Battery
   }
 
   bool isUsbConnected() {
-      return Serial;   // true when USB CDC connected
+    return false; // tud_connected();   // true when USB CDC connected I CANT GET THIS TO WORK WIHTOUT PHYSICALLY WIRING A RESISTOR TO VBUS 5V LINE, AND I JUST SIMPLY DONT HAVE ENOUGH TIME FOR THAT RIGHT NOW, IM SORRY.
   }
 
   int voltageToPercentage(float v) 

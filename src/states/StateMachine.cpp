@@ -47,13 +47,26 @@ static void onRadioPacket(uint8_t* data, size_t len)
     Protocol::onReceive(pkt);
 }
 
+// <======================>
+//   Data Rx Callback
+// <======================>
+static void onData(const uint8_t* decrypted, size_t len)
+{
+    Message msg;
+
+    strncpy(msg.text, (const char*)decrypted, MAX_MESSAGE_LEN);
+    msg.outgoing = false;
+
+    Messages::push(msg); 
+}
+
 void StateMachine::init()
 {
     Keyboard::init();
     Display::init();
     LoRa::init();
     LoRa::setReceiveCallback(onRadioPacket);
-    Protocol::setDataCallback(Crypto::onData);
+    Protocol::setDataCallback(onData);
     Handshake::init();
 
     enterState(STATE_SLEEPING);
@@ -114,23 +127,16 @@ static void sendMessage()
     if (!Messages::isInputBufferEmpty())
     {
         const char* inputBuffer = Messages::getInputBuffer();
+        size_t len = strlen(inputBuffer);
+        if (len > MAX_MESSAGE_LEN) return;
 
         Message msg;
         strncpy(msg.text, inputBuffer, MAX_MESSAGE_LEN);
         msg.outgoing = true;
 
         Messages::push(msg);
-
-        size_t len = strlen(inputBuffer);
-
-        if (len > LoRa::BUFFER_SIZE - 2)
-            len = LoRa::BUFFER_SIZE - 2;
-
-        LoRa::enqueuePacket(
-            Packet::DATA,
-            (const uint8_t*)inputBuffer,
-            strlen(inputBuffer)
-        );
+        
+        Protocol::sendData((uint8_t*)inputBuffer, len);
         
         Messages::clearInputBuffer();
         Display::drawMessages();
@@ -140,16 +146,8 @@ static void sendMessage()
 static void enterPairing() {
     const char* inputBuffer = Messages::getInputBuffer();
 
-    // SEND THIS INPUT BUFFER OFF TO PROTOCOL OR HANDSHAKE RELATED FUNCTION OR CRYPTO?
-
-    // Message msg;
-    // strncpy(msg.text, inputBuffer, MAX_MESSAGE_LEN);
-    // msg.outgoing = true;
-
-    // Messages::push(msg);
-    // LoRa::sendMessage(inputBuffer);
-
     Handshake::reset();
+    Handshake::setPSK((const uint8_t*)inputBuffer);
     Handshake::start();
 
     Messages::clearInputBuffer();
@@ -170,46 +168,6 @@ static void updatePairingTimer()
     }
 }
 
-static void updatePairing()
-{
-    updatePairingTimer();
-    // HANDSHAKE CODE
-    // DISPLAY.DRAWPAIRING TIMER CODE
-}
-
-static void pollLoRa()
-{
-    static unsigned long lastUpdate = 0;
-    const unsigned long interval = 50;
-
-    if (millis() - lastUpdate >= interval)
-    {
-        lastUpdate = millis();
-
-        // uint8_t buffer[MAX_MESSAGE_LEN];
-
-        // if (LoRa::isMessageAvailable())
-        // {
-        //     uint16_t size = LoRa::getMessage(buffer);
-
-        //     if (size < LoRa::BUFFER_SIZE)
-        //         buffer[size] = '\0';
-
-        //     Serial.println((char*)buffer);
-
-        //     Message msg;
-
-        //     memcpy(msg.text, buffer, size);
-        //     msg.text[size] = '\0';
-        //     msg.outgoing = false;
-
-        //     Messages::push(msg);
-
-        //     // Display::showMessage((char*)buffer);
-        // }
-    }
-}
-
 static void enterState(DeviceState state)
 {
     if (state == STATE_SLEEPING)
@@ -222,7 +180,6 @@ static void enterState(DeviceState state)
     Serial.println("ENTERING");
     Serial.println(state);
     Battery::wakeUp();
-    // Display::drawActiveScreen(state);
 
     switch (state)
     {
@@ -262,6 +219,7 @@ static void handleInput(const KeyEvent& event, DeviceState &state)
     {
         case KeyEventType::CHARACTER:
             if (state == STATE_CONFIG && Messages::getInputLength() == 12) return;
+            if (state == STATE_CONNECTED && Messages::getInputLength() == 64) return;
             Messages::appendChar(event.character);
             break;
 
@@ -333,7 +291,7 @@ static void runPairing(DeviceState &state)
         handleInput(event, state);
     }
 
-    updatePairing();
+    updatePairingTimer();
 
     Handshake::update();
 
@@ -358,9 +316,6 @@ static void runConnected(DeviceState &state)
 
     // Update battery periodically (Every 3s)
     updateBattery();
-
-    // Poll LoRa periodically ( Every 20ms )
-    pollLoRa();
 
     Message msg;
 

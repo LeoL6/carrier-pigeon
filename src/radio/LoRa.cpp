@@ -80,51 +80,6 @@ namespace LoRa
     onReceiveCb = cb;
   }
 
-  // void sendPacket(uint8_t type, const uint8_t* payload, size_t payloadLen)
-  // {
-  //   if (txInProgress)
-  //   {
-  //     Serial.println("TX IN PROG");
-  //     return;
-  //   }
-
-  //   if (payloadLen > BUFFER_SIZE - 2)
-  //   {
-  //     Serial.println("BUFFER TOO BIG");
-  //     return; // too big
-  //   }
-
-  //   txBuffer[0] = type;
-  //   txBuffer[1] = payloadLen;
-
-  //   if (payloadLen > 0)
-  //       memcpy(&txBuffer[2], payload, payloadLen);
-
-  //   size_t totalSize = payloadLen + 2;
-
-  //   txInProgress = true;
-
-  //   Serial.println("Sending packet...");
-  //   Radio.Sleep();
-  //   Radio.Send(txBuffer, totalSize);
-  // }
-
-  // void sendMessage(const char* msg)
-  // {
-  //   if (txInProgress) return;
-
-  //   size_t size = strlen(msg);
-  //   if (size > BUFFER_SIZE)
-  //       size = BUFFER_SIZE;
-
-  //   memcpy(txBuffer, msg, size);
-
-  //   txInProgress = true;
-
-  //   Serial.println("Sending...");
-  //   Radio.Send(txBuffer, size);
-  // }
-
   void onTxDone() 
   {
     Serial.println("TRANSMIT DONE");

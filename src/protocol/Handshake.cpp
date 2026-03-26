@@ -1,12 +1,111 @@
 #include "Handshake.h"
 #include "../radio/LoRa.h"
+#include "../crypto/Crypto.h"
+#include "Session.h"
 
 namespace Handshake
 {
+  Session& session = SessionManager::get();
+
   void init()
   {
-    // myId = ESP.getEfuseMac();
-    myId = 1;
+    session.myId = ESP.getEfuseMac();
+    Serial.println(session.myId);
+  }
+
+  // <========================>
+  //   Build / Unpack Methods
+  // <========================> 
+  static size_t buildHelloPayload(uint8_t* out, uint64_t id, const uint8_t* nonce, const uint8_t* pubkey)
+  {
+    size_t offset = 0;
+
+    memcpy(out + offset, &id, Crypto::ID_SIZE); offset += Crypto::ID_SIZE;
+    memcpy(out + offset, nonce, Crypto::NONCE_SIZE); offset += Crypto::NONCE_SIZE;
+    memcpy(out + offset, pubkey, Crypto::KEY_SIZE); offset += Crypto::KEY_SIZE;
+
+    return offset;
+  }
+
+  static bool unpackHelloPayload(const uint8_t* payload, size_t len, uint64_t& outId, uint8_t* outNonce, uint8_t* outPubKey)
+  {
+    if (len != (Crypto::ID_SIZE + Crypto::NONCE_SIZE + Crypto::KEY_SIZE)) return false;
+
+    size_t offset = 0;
+
+    memcpy(&outId, payload + offset, Crypto::ID_SIZE); offset += Crypto::ID_SIZE;
+    memcpy(outNonce, payload + offset, Crypto::NONCE_SIZE); offset += Crypto::NONCE_SIZE;
+    memcpy(outPubKey, payload + offset, Crypto::KEY_SIZE); offset += Crypto::KEY_SIZE;
+
+    return true;
+  }
+
+  static size_t buildHelloAck(uint8_t* out, const uint8_t* myNonce, const uint8_t* peerNonce)
+  {
+    size_t offset = 0;
+
+    memcpy(out + offset, myNonce, Crypto::NONCE_SIZE); offset += Crypto::NONCE_SIZE;
+    memcpy(out + offset, peerNonce, Crypto::NONCE_SIZE); offset += Crypto::NONCE_SIZE;
+
+    return offset;
+  }
+
+  static bool unpackHelloAck(const uint8_t* payload, size_t len, uint8_t* outPeerNonce, uint8_t* outEchoNonce)
+  {
+    if (len != (Crypto::NONCE_SIZE * 2)) return false;
+
+    size_t offset = 0;
+
+    memcpy(outPeerNonce, payload + offset, Crypto::NONCE_SIZE); offset += Crypto::NONCE_SIZE;
+    memcpy(outEchoNonce, payload + offset, Crypto::NONCE_SIZE); offset += Crypto::NONCE_SIZE;
+
+    return true;
+  }
+
+  static void buildAuthPayload(uint64_t myId, uint64_t peerId, const uint8_t* myNonce, const uint8_t* peerNonce, const uint8_t* sessionKey, uint8_t role, uint8_t* outTag)
+  {
+    uint8_t buffer[Crypto::ID_SIZE + Crypto::ID_SIZE + Crypto::NONCE_SIZE + Crypto::NONCE_SIZE + 1]; // + 1 for role binding, PREVENTS AGAINST REFLECTION ATTACKS
+    size_t offset = 0;
+
+    const uint8_t* firstNonce;
+    const uint8_t* secondNonce;
+    uint64_t firstId;
+    uint64_t secondId;
+
+    // Deterministic Ordering
+    if (myId < peerId)
+    {
+        firstId = myId;
+        secondId = peerId;
+
+        firstNonce = myNonce;
+        secondNonce = peerNonce;
+    }
+    else
+    {
+        firstId = peerId;
+        secondId = myId;
+
+        firstNonce = peerNonce;
+        secondNonce = myNonce;
+    }
+
+    memcpy(buffer + offset, &firstId, Crypto::ID_SIZE); offset += Crypto::ID_SIZE;
+    memcpy(buffer + offset, &secondId, Crypto::ID_SIZE); offset += Crypto::ID_SIZE;
+
+    memcpy(buffer + offset, firstNonce, Crypto::NONCE_SIZE); offset += Crypto::NONCE_SIZE;
+    memcpy(buffer + offset, secondNonce, Crypto::NONCE_SIZE); offset += Crypto::NONCE_SIZE;
+
+    // Include Role Binding
+    buffer[offset++] = role;
+
+    // MAC using sessionKey
+    Crypto::blake2bMAC(
+      outTag,
+      sessionKey,
+      buffer,
+      offset
+    );
   }
 
   // <==========================>
@@ -15,29 +114,80 @@ namespace Handshake
   static void sendHello()
   {
     Serial.println("Sending Hello");
-    LoRa::enqueuePacket(
-      Packet::HELLO, 
-      (uint8_t*)&myId,
-      sizeof(myId)
-    );
+
+    // ID = 8 bytes || NONCE = 16 bytes || PUBKEY = 32 bytes
+    uint8_t payload[(Crypto::ID_SIZE + Crypto::NONCE_SIZE + Crypto::KEY_SIZE)];
+
+    Crypto::generateNonce(session.myNonce);
+    Crypto::generateKeyPair(session.myPrivKey, session.myPubKey);
+
+    size_t len = buildHelloPayload(payload, session.myId, session.myNonce, session.myPubKey);
+
+    LoRa::enqueuePacket(Packet::HELLO, payload, len);
   }
 
   static void sendHelloAck()
   {
     Serial.println("Sending Hello Ack");
-    LoRa::enqueuePacket(Packet::HELLO_ACK, nullptr, 0);
+
+    // RESEND RECEIVED NONCE
+    uint8_t ackPayload[Crypto::NONCE_SIZE * 2];
+
+    size_t len = buildHelloAck(ackPayload, session.myNonce, session.peerNonce);
+
+    LoRa::enqueuePacket(Packet::HELLO_ACK, ackPayload, len);
   }
 
   static void sendAuth()
   {
     Serial.println("Sending Auth");
-    LoRa::enqueuePacket(Packet::AUTH, nullptr, 0);
+
+    Crypto::computeSharedSecret(session.myPrivKey, session.peerPubKey, session.sharedSecret);
+
+    Crypto::deriveSessionKey(session.myId, session.peerId, session.sharedSecret, session.myNonce, session.peerNonce, session.psk, session.sessionKey);
+
+    uint8_t authTag[Crypto::KEY_SIZE];
+
+    buildAuthPayload(
+      session.myId,
+      session.peerId,
+      session.myNonce,
+      session.peerNonce,
+      session.sessionKey,
+      role,
+      authTag
+    );
+
+    LoRa::enqueuePacket(Packet::AUTH, authTag, Crypto::KEY_SIZE);
   }
 
   static void sendAuthAck()
   {
     Serial.println("Sending Auth Ack");
-    LoRa::enqueuePacket(Packet::AUTH_ACK, nullptr, 0);
+
+    Crypto::computeSharedSecret(session.myPrivKey, session.peerPubKey, session.sharedSecret);
+
+    Crypto::deriveSessionKey(session.myId, session.peerId, session.sharedSecret, session.myNonce, session.peerNonce, session.psk, session.sessionKey);
+
+    uint8_t authTag[Crypto::KEY_SIZE];
+
+    buildAuthPayload(
+      session.myId,
+      session.peerId,
+      session.myNonce,
+      session.peerNonce,
+      session.sessionKey,
+      role,
+      authTag
+    );
+
+    LoRa::enqueuePacket(Packet::AUTH_ACK, authTag, Crypto::KEY_SIZE);
+  }
+
+  static void startCounter()
+  {
+    session.txCounter = 1;
+    session.rxCounter = 0;
   }
 
   // <==========================>
@@ -45,10 +195,11 @@ namespace Handshake
   // <==========================> 
   void onHello(Packet::Packet& pkt)
   {
-    uint64_t peerId;
-    memcpy(&peerId, pkt.payload, sizeof(peerId));
+    bool ok = unpackHelloPayload(pkt.payload, pkt.length, session.peerId, session.peerNonce, session.peerPubKey);
 
-    bool shouldBeInitiator = myId > peerId;
+    if (!ok) return;
+
+    bool shouldBeInitiator = session.myId > session.peerId;
 
     if (!shouldBeInitiator)
     {
@@ -64,6 +215,27 @@ namespace Handshake
   {
     if (role != INITIATOR || state != WAIT_HELLO_ACK) return;
 
+    uint8_t peerNonce[Crypto::NONCE_SIZE];
+    uint8_t echoNonce[Crypto::NONCE_SIZE];
+
+    if (!unpackHelloAck(pkt.payload, pkt.length, peerNonce, echoNonce))
+    {
+      Serial.println("Invalid HELLO_ACK size");
+      return;
+    }
+
+    // Validate echo
+    if (memcmp(echoNonce, session.myNonce, Crypto::NONCE_SIZE) != 0)
+    {
+      Serial.println("HELLO_ACK nonce mismatch");
+      return;
+    }
+
+    // Store peer nonce (if not already stored...)
+    memcpy(session.peerNonce, peerNonce, Crypto::NONCE_SIZE);
+
+    Serial.println("HELLO_ACK valid");
+
     sendAuth();
 
     lastSendTime = millis();
@@ -73,18 +245,78 @@ namespace Handshake
 
   void onAuth(Packet::Packet& pkt)
   {
-    if (role != RESPONDER || state != WAIT_AUTH) return;
+    if (role != RESPONDER) return;
 
+    // If responder, compute shared secret and session key here
+    Crypto::computeSharedSecret(session.myPrivKey, session.peerPubKey, session.sharedSecret);
+    Crypto::deriveSessionKey(
+      session.myId,
+      session.peerId,
+      session.sharedSecret,
+      session.myNonce,
+      session.peerNonce,
+      session.psk,
+      session.sessionKey
+    );
+
+    uint8_t expected[Crypto::KEY_SIZE];
+
+    buildAuthPayload(
+      session.myId,
+      session.peerId,
+      session.myNonce,
+      session.peerNonce,
+      session.sessionKey,
+      INITIATOR,
+      expected
+    );
+
+    if (Crypto::verify32(expected, pkt.payload) != 0)
+    {
+      Serial.println("AUTH FAILED");
+      return;
+    }
+
+    Serial.println("AUTH SUCCESS");
+
+    // always send ACK, even if already established, fixes edge case where AuthAck gets dropped.
+    // small delay to ensure initiator is listening
+    delay(100);  // 5–10 ms
     sendAuthAck();
 
-    state = ESTABLISHED;
+    if (state == WAIT_AUTH) 
+    {
+      state = ESTABLISHED;
+      startCounter();
+    }
   }
 
   void onAuthAck(Packet::Packet& pkt)
   {
     if (role != INITIATOR || state != WAIT_AUTH_ACK) return;
 
+    uint8_t expected[Crypto::KEY_SIZE];
+
+    buildAuthPayload(
+      session.myId,
+      session.peerId,
+      session.myNonce,
+      session.peerNonce,
+      session.sessionKey,
+      RESPONDER,
+      expected
+    );
+
+    if (Crypto::verify32(expected, pkt.payload) != 0)
+    {
+      Serial.println("AUTH FAILED");
+      return;
+    }
+
+    Serial.println("AUTH SUCCESS");
+
     state = ESTABLISHED;
+    startCounter();
   }
 
   void start()
@@ -144,11 +376,23 @@ namespace Handshake
     }
   }
 
+  void zeroSession()
+  {
+    // zero entire session context here
+  }
+
   void reset()
   {
+    session.txCounter = 0;
+    session.rxCounter = 0;
     pairingStartTime = 0;
     state = WAIT_HELLO;
     role = NONE;
+  }
+
+  void setPSK(const uint8_t* input)
+  {
+    memcpy(session.psk, input, Crypto::PSK_SIZE);
   }
 
   uint32_t getPairingStartTime()
