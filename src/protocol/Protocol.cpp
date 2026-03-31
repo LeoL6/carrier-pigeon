@@ -30,6 +30,12 @@ namespace Protocol
       counter = (counter << 8) | pkt.payload[i];
     }
 
+    // Reflection Protection
+    if (counter == session.txCounter - 1) {
+      Serial.println("Reflection detected");
+      return;
+    }
+
     // Replay protection
     if (counter <= session.rxCounter) {
       Serial.println("Replay detected");
@@ -49,7 +55,7 @@ namespace Protocol
     }
 
     // Decrypt into exact message length
-    uint8_t plaintext[64];
+    uint8_t plaintext[65];
     bool ok = Crypto::decrypt(
       session.sessionKey,
       counter,
