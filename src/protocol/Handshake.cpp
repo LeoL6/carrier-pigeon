@@ -10,6 +10,7 @@ namespace Handshake
   void init()
   {
     session.myId = ESP.getEfuseMac();
+    // session.myId = 0;
     Serial.println(session.myId);
   }
 
@@ -206,6 +207,8 @@ namespace Handshake
       // If we lose the tie breaker, we become the responder
       role = RESPONDER;
 
+      // Small delay to ensure peer is listening
+      delay(500);
       sendHelloAck();
       state = WAIT_AUTH;
     }
@@ -235,6 +238,9 @@ namespace Handshake
     memcpy(session.peerNonce, peerNonce, Crypto::NONCE_SIZE);
 
     Serial.println("HELLO_ACK valid");
+
+    // small delay to ensure initiator is listening
+    delay(500);
 
     sendAuth();
 
@@ -281,7 +287,7 @@ namespace Handshake
 
     // always send ACK, even if already established, fixes edge case where AuthAck gets dropped.
     // small delay to ensure initiator is listening
-    delay(100);  // 5–10 ms
+    delay(500);
     sendAuthAck();
 
     if (state == WAIT_AUTH) 
