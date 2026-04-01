@@ -36,6 +36,7 @@ namespace LoRa
   // <========================>
   //   Packet Functions
   // <========================>
+  void clearQueue();
   bool enqueuePacket(uint8_t type, const uint8_t* payload, uint8_t len);
   // void sendPacket(uint8_t type, const uint8_t* payload, size_t payloadLen);
   // bool isMessageAvailable();

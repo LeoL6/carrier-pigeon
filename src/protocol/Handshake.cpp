@@ -10,7 +10,6 @@ namespace Handshake
   void init()
   {
     session.myId = ESP.getEfuseMac();
-    // session.myId = 0;
     Serial.println(session.myId);
   }
 

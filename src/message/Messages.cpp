@@ -40,6 +40,13 @@ namespace Messages
     return true;
   }
 
+  void clearMessageBuffer()
+  {
+    head = 0;
+    tail = 0;
+    messagesLength = 0;
+  }
+
   bool isMessageBufferEmpty()
   {
     return messagesLength == 0;

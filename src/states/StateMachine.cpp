@@ -184,11 +184,14 @@ static void enterState(DeviceState state)
     switch (state)
     {
         case STATE_CONNECTED:
+            LoRa::clearQueue();
+            Messages::clearMessageBuffer();
             Display::drawConnectedScreen();
             Display::clearMessageLines();
             break;
 
         case STATE_PAIRING:
+            LoRa::clearQueue();
             Display::drawPairingScreen();
             enterPairing();
             break;

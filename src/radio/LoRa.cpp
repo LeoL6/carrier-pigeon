@@ -122,6 +122,12 @@ namespace LoRa
     Radio.Rx(0);
   }
 
+  void clearQueue()
+  {
+    queueHead = 0;
+    queueTail = 0;
+  }
+
   static bool isQueueFull()
   {
     return ((queueHead + 1) % QUEUE_SIZE) == queueTail;
@@ -179,6 +185,8 @@ namespace LoRa
 
     // Only send if radio is free
     if (txInProgress) return;
+
+    // write something to drop stale packets
 
     if (isQueueEmpty()) return;
 

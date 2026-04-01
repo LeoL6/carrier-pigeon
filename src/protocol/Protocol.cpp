@@ -30,11 +30,11 @@ namespace Protocol
       counter = (counter << 8) | pkt.payload[i];
     }
 
-    // Reflection Protection
-    if (counter == session.txCounter - 1) {
-      Serial.println("Reflection detected");
-      return;
-    }
+    // // Reflection Protection
+    // if (counter == session.txCounter - 1) {
+    //   Serial.println("Reflection detected");
+    //   return;
+    // }
 
     // Replay protection
     if (counter <= session.rxCounter) {

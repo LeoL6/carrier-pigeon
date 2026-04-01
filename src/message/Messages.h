@@ -10,6 +10,7 @@ namespace Messages
   bool push(const Message& msg);
   bool pop(Message& msg);
 
+  void clearMessageBuffer();
   bool isMessageBufferEmpty();
 
   // <========================>
