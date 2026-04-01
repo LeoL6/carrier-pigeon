@@ -7,6 +7,7 @@ namespace Crypto
   // <========================>
   //   Constants
   // <========================>
+  constexpr size_t ROLE_SIZE          = 1;
   constexpr size_t ID_SIZE            = 8;
   constexpr size_t COUNTER_SIZE       = 8;
   constexpr size_t PSK_SIZE           = 12;
@@ -45,6 +46,6 @@ namespace Crypto
   // <========================>
   //   Encryption Functions
   // <========================>
-  void encrypt(const uint8_t* key, uint64_t counter, const uint8_t* plaintext, size_t len, uint8_t* outCiphertext, uint8_t* outTag);
-  bool decrypt(const uint8_t* key, uint64_t counter, const uint8_t* ciphertext, size_t len, const uint8_t* tag, uint8_t* outPlaintext);
+  void encrypt(const uint8_t* key, const uint8_t* nonce, const uint8_t* plaintext, size_t len, uint8_t* outCiphertext, uint8_t* outTag);
+  bool decrypt(const uint8_t* key, const uint8_t* nonce, const uint8_t* ciphertext, size_t len, const uint8_t* tag, uint8_t* outPlaintext);
 }

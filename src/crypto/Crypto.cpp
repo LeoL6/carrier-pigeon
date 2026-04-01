@@ -125,22 +125,11 @@ namespace Crypto
   {
     return crypto_verify32(a, b);
   }
-
-  void buildCounterNonce(uint64_t counter, uint8_t* nonce)
+  
+  void encrypt(const uint8_t* key, const uint8_t* nonce, const uint8_t* plaintext, size_t len, uint8_t* outCiphertext, uint8_t* outTag)
   {
-    // Zero the first 4 bytes
-    memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE - Crypto::COUNTER_SIZE);
-
-    // Put counter in last 8 bytes, big-endian
-    for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
-      nonce[Crypto::COUNTER_NONCE_SIZE - Crypto::COUNTER_SIZE + i] = (counter >> (8 * (Crypto::COUNTER_SIZE - 1 - i))) & 0xFF;
-    }
-  }
-
-  void encrypt(const uint8_t* key, uint64_t counter, const uint8_t* plaintext, size_t len, uint8_t* outCiphertext, uint8_t* outTag)
-  {
-    uint8_t nonce[COUNTER_NONCE_SIZE];
-    buildCounterNonce(counter, nonce);
+    // uint8_t nonce[COUNTER_NONCE_SIZE];
+    // buildCounterNonce(counter, nonce);
 
     crypto_aead_ctx ctx;
     crypto_aead_init_ietf(&ctx, key, nonce);
@@ -155,10 +144,10 @@ namespace Crypto
     );
   }
 
-  bool decrypt(const uint8_t* key, uint64_t counter, const uint8_t* ciphertext, size_t len, const uint8_t* tag, uint8_t* outPlaintext)
+  bool decrypt(const uint8_t* key, const uint8_t* nonce, const uint8_t* ciphertext, size_t len, const uint8_t* tag, uint8_t* outPlaintext)
   {
-    uint8_t nonce[COUNTER_NONCE_SIZE];
-    buildCounterNonce(counter, nonce);
+    // uint8_t nonce[COUNTER_NONCE_SIZE];
+    // buildCounterNonce(counter, nonce);
 
     crypto_aead_ctx ctx;
     crypto_aead_init_ietf(&ctx, key, nonce);

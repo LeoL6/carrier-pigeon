@@ -66,6 +66,7 @@ namespace Handshake
   // <========================>
   //   Helper Functions
   // <========================> 
+  uint8_t getRole();
   void setPSK(const uint8_t* input);
   uint32_t getPairingStartTime();
   bool isEstablished();

@@ -395,6 +395,11 @@ namespace Handshake
     role = NONE;
   }
 
+  uint8_t getRole()
+  {
+    return role;
+  }
+
   void setPSK(const uint8_t* input)
   {
     memcpy(session.psk, input, Crypto::PSK_SIZE);

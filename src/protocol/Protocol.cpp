@@ -20,6 +20,20 @@ namespace Protocol
     onDataCb = cb;
   }
 
+  static void buildCounterNonce(uint8_t senderRole, uint64_t counter, uint8_t* nonce)
+  {
+    // Zero the first 4 bytes
+    // memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE - Crypto::COUNTER_SIZE);
+    memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
+
+    nonce[0] = senderRole;
+
+    // Put counter in last 8 bytes, big-endian
+    for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
+      nonce[Crypto::COUNTER_NONCE_SIZE - Crypto::COUNTER_SIZE + i] = (counter >> (8 * (Crypto::COUNTER_SIZE - 1 - i))) & 0xFF;
+    }
+  }
+
   static void onData(Packet::Packet& pkt)
   {
    if (!Handshake::isEstablished()) return;
@@ -27,14 +41,8 @@ namespace Protocol
     // Deserialize counter from big-endian
     uint64_t counter = 0;
     for (size_t i = 0; i < Crypto::COUNTER_SIZE; i++) {
-      counter = (counter << 8) | pkt.payload[i];
+      counter = (counter << 8) | pkt.payload[Crypto::ROLE_SIZE + i];
     }
-
-    // // Reflection Protection
-    // if (counter == session.txCounter - 1) {
-    //   Serial.println("Reflection detected");
-    //   return;
-    // }
 
     // Replay protection
     if (counter <= session.rxCounter) {
@@ -43,22 +51,33 @@ namespace Protocol
     }
 
     // Compute lengths
-    size_t cipherLen = pkt.length - Crypto::COUNTER_SIZE - Crypto::TAG_SIZE;
-    const uint8_t* ciphertext = pkt.payload + Crypto::COUNTER_SIZE;
-    const uint8_t* tag = pkt.payload + Crypto::COUNTER_SIZE + cipherLen;
+    size_t cipherLen = pkt.length - Crypto::ROLE_SIZE - Crypto::COUNTER_SIZE - Crypto::TAG_SIZE;
+    const uint8_t* ciphertext = pkt.payload + Crypto::ROLE_SIZE + Crypto::COUNTER_SIZE;
+    const uint8_t* tag = pkt.payload + Crypto::ROLE_SIZE + Crypto::COUNTER_SIZE + cipherLen;
+
+    uint8_t senderRole = pkt.payload[0];
 
     // Rebuild nonce from counter
     uint8_t nonce[Crypto::COUNTER_NONCE_SIZE];
-    memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
-    for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
-      nonce[Crypto::COUNTER_NONCE_SIZE - 1 - i] = (counter >> (8 * i)) & 0xFF;
-    }
+
+    buildCounterNonce(senderRole, counter, nonce);
+
+    // memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
+
+    // // Include Sender Role in first byte
+    // uint8_t senderRole = pkt.payload[0];
+    // nonce[0] = senderRole;
+
+    // for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
+    //   nonce[Crypto::COUNTER_NONCE_SIZE - 1 - i] = (counter >> (8 * i)) & 0xFF;
+    // }
 
     // Decrypt into exact message length
     uint8_t plaintext[65];
     bool ok = Crypto::decrypt(
       session.sessionKey,
-      counter,
+      nonce,
+      //counter,
       ciphertext,
       cipherLen,
       tag,
@@ -70,7 +89,16 @@ namespace Protocol
       return;
     }
 
-    session.rxCounter = counter; // Update last received counter
+    // Reflection Protection
+    uint8_t myRole = Handshake::getRole();
+
+    if (senderRole == myRole) {
+      Serial.println("Reflection detected");
+      return;
+    }
+
+    // Update last received counter
+    session.rxCounter = counter;
 
     // Null-terminate exactly at decrypted length
     if (cipherLen < sizeof(plaintext))
@@ -127,17 +155,35 @@ namespace Protocol
 
     uint64_t counter = session.txCounter++;
 
+    uint8_t senderRole = Handshake::getRole();
+
     // Build nonce from counter (12 bytes)
     uint8_t nonce[Crypto::COUNTER_NONCE_SIZE];
-    memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
-    for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
-      nonce[Crypto::COUNTER_NONCE_SIZE - 1 - i] = (counter >> (8 * i)) & 0xFF;
-    }
+
+    buildCounterNonce(senderRole, counter, nonce);
+
+    // memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
+
+    // // Include Sender Role in first byte
+    // uint8_t senderRole = Handshake::getRole();
+    // nonce[0] = senderRole;
+
+    // // Then counter like before
+    // for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
+    //   nonce[Crypto::COUNTER_NONCE_SIZE - 1 - i] = (counter >> (8 * i)) & 0xFF;
+    // }
+
+    // uint8_t nonce[Crypto::COUNTER_NONCE_SIZE];
+    // memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
+    // for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
+    //   nonce[Crypto::COUNTER_NONCE_SIZE - 1 - i] = (counter >> (8 * i)) & 0xFF;
+    // }
 
     // Encrypt using Monocypher
     Crypto::encrypt(
       session.sessionKey,
-      counter,
+      //counter
+      nonce,
       data,
       len,
       ciphertext,
@@ -145,8 +191,11 @@ namespace Protocol
     );
 
     // Build packet
-    uint8_t payload[Crypto::COUNTER_SIZE + len + Crypto::TAG_SIZE];
+    uint8_t payload[1 + Crypto::COUNTER_SIZE + len + Crypto::TAG_SIZE];
     size_t offset = 0;
+
+    // Include Sender Role in first byte
+    payload[offset++] = senderRole;
 
     // Serialize counter as big-endian
     for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
