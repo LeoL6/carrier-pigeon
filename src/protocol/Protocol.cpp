@@ -62,16 +62,6 @@ namespace Protocol
 
     buildCounterNonce(senderRole, counter, nonce);
 
-    // memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
-
-    // // Include Sender Role in first byte
-    // uint8_t senderRole = pkt.payload[0];
-    // nonce[0] = senderRole;
-
-    // for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
-    //   nonce[Crypto::COUNTER_NONCE_SIZE - 1 - i] = (counter >> (8 * i)) & 0xFF;
-    // }
-
     // Decrypt into exact message length
     uint8_t plaintext[65];
     bool ok = Crypto::decrypt(
@@ -161,23 +151,6 @@ namespace Protocol
     uint8_t nonce[Crypto::COUNTER_NONCE_SIZE];
 
     buildCounterNonce(senderRole, counter, nonce);
-
-    // memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
-
-    // // Include Sender Role in first byte
-    // uint8_t senderRole = Handshake::getRole();
-    // nonce[0] = senderRole;
-
-    // // Then counter like before
-    // for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
-    //   nonce[Crypto::COUNTER_NONCE_SIZE - 1 - i] = (counter >> (8 * i)) & 0xFF;
-    // }
-
-    // uint8_t nonce[Crypto::COUNTER_NONCE_SIZE];
-    // memset(nonce, 0, Crypto::COUNTER_NONCE_SIZE);
-    // for (int i = 0; i < Crypto::COUNTER_SIZE; i++) {
-    //   nonce[Crypto::COUNTER_NONCE_SIZE - 1 - i] = (counter >> (8 * i)) & 0xFF;
-    // }
 
     // Encrypt using Monocypher
     Crypto::encrypt(

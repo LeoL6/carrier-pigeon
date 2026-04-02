@@ -381,13 +381,21 @@ namespace Handshake
     }
   }
 
-  void zeroSession()
-  {
-    // zero entire session context here
-  }
-
   void reset()
   {
+    // Zero out session
+    Crypto::wipe(session.psk, Crypto::PSK_SIZE);
+
+    Crypto::wipe(session.myNonce, Crypto::NONCE_SIZE);
+    Crypto::wipe(session.peerNonce, Crypto::NONCE_SIZE);
+
+    Crypto::wipe(session.myPrivKey, Crypto::KEY_SIZE);
+    Crypto::wipe(session.myPubKey, Crypto::KEY_SIZE);
+    Crypto::wipe(session.peerPubKey, Crypto::KEY_SIZE);
+
+    Crypto::wipe(session.sharedSecret, Crypto::KEY_SIZE);
+    Crypto::wipe(session.sessionKey, Crypto::KEY_SIZE);
+
     session.txCounter = 0;
     session.rxCounter = 0;
     pairingStartTime = 0;

@@ -1,4 +1,5 @@
 #include "Messages.h"
+#include "../crypto/Crypto.h"
 
 namespace Messages 
 {
@@ -42,6 +43,12 @@ namespace Messages
 
   void clearMessageBuffer()
   {
+    // Zero out Message Buffer
+    for (int i = 0; i < MAX_MESSAGES; i++)
+    {
+      Crypto::wipe(messages[i].text, MAX_MESSAGE_LEN);
+    }
+
     head = 0;
     tail = 0;
     messagesLength = 0;

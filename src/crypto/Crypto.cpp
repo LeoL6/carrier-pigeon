@@ -7,9 +7,6 @@
 
 namespace Crypto
 {
-  /* Wipe secrets if they are no longer needed */
-  // crypto_wipe(your_sk, 32);
-
   // <========================>
   //   Nonce Functions
   // <========================>
@@ -125,7 +122,7 @@ namespace Crypto
   {
     return crypto_verify32(a, b);
   }
-  
+
   void encrypt(const uint8_t* key, const uint8_t* nonce, const uint8_t* plaintext, size_t len, uint8_t* outCiphertext, uint8_t* outTag)
   {
     // uint8_t nonce[COUNTER_NONCE_SIZE];
@@ -162,5 +159,11 @@ namespace Crypto
     );
 
     return ok == 0; // 0 = success
+  }
+
+  // Wipe secrets if they are no longer needed
+  void wipe(void *secret, size_t secret_size)
+  {
+    crypto_wipe(secret, secret_size);
   }
 }
