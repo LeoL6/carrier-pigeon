@@ -125,9 +125,6 @@ namespace Crypto
 
   void encrypt(const uint8_t* key, const uint8_t* nonce, const uint8_t* plaintext, size_t len, uint8_t* outCiphertext, uint8_t* outTag)
   {
-    // uint8_t nonce[COUNTER_NONCE_SIZE];
-    // buildCounterNonce(counter, nonce);
-
     crypto_aead_ctx ctx;
     crypto_aead_init_ietf(&ctx, key, nonce);
 
@@ -143,9 +140,6 @@ namespace Crypto
 
   bool decrypt(const uint8_t* key, const uint8_t* nonce, const uint8_t* ciphertext, size_t len, const uint8_t* tag, uint8_t* outPlaintext)
   {
-    // uint8_t nonce[COUNTER_NONCE_SIZE];
-    // buildCounterNonce(counter, nonce);
-
     crypto_aead_ctx ctx;
     crypto_aead_init_ietf(&ctx, key, nonce);
 

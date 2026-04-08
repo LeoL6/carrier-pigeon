@@ -190,6 +190,21 @@ namespace Handshake
     session.rxCounter = 0;
   }
 
+  // NEWEST UPDATE
+  static void zeroSecrets()
+  {
+    Crypto::wipe(session.psk, Crypto::PSK_SIZE);
+
+    Crypto::wipe(session.myNonce, Crypto::NONCE_SIZE);
+    Crypto::wipe(session.peerNonce, Crypto::NONCE_SIZE);
+
+    Crypto::wipe(session.myPrivKey, Crypto::KEY_SIZE);
+    Crypto::wipe(session.myPubKey, Crypto::KEY_SIZE);
+    Crypto::wipe(session.peerPubKey, Crypto::KEY_SIZE);
+
+    Crypto::wipe(session.sharedSecret, Crypto::KEY_SIZE);
+  }
+
   // <==========================>
   //   On Packet Received Funcs.
   // <==========================> 
@@ -292,6 +307,7 @@ namespace Handshake
     if (state == WAIT_AUTH) 
     {
       state = ESTABLISHED;
+      zeroSecrets();
       startCounter();
     }
   }
@@ -321,6 +337,7 @@ namespace Handshake
     Serial.println("AUTH SUCCESS");
 
     state = ESTABLISHED;
+    zeroSecrets();
     startCounter();
   }
 
@@ -383,17 +400,7 @@ namespace Handshake
 
   void reset()
   {
-    // Zero out session
-    Crypto::wipe(session.psk, Crypto::PSK_SIZE);
-
-    Crypto::wipe(session.myNonce, Crypto::NONCE_SIZE);
-    Crypto::wipe(session.peerNonce, Crypto::NONCE_SIZE);
-
-    Crypto::wipe(session.myPrivKey, Crypto::KEY_SIZE);
-    Crypto::wipe(session.myPubKey, Crypto::KEY_SIZE);
-    Crypto::wipe(session.peerPubKey, Crypto::KEY_SIZE);
-
-    Crypto::wipe(session.sharedSecret, Crypto::KEY_SIZE);
+    // Zero out session key
     Crypto::wipe(session.sessionKey, Crypto::KEY_SIZE);
 
     session.txCounter = 0;
