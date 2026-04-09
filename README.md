@@ -1,4 +1,4 @@
-# Carrier Pigeon 
+# Carrier Pigeon - Browser Based
 Carrier Pigeon is a Open Source E2EE LoraWAN based Messaging Application, created for the ESP32.
 ## Specs
 > Majority of Crypto is performed using [TweetNacl.js](https://github.com/dchest/tweetnacl-js).
