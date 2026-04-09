@@ -3,7 +3,9 @@ Carrier Pigeon is a Open Source E2EE LoraWAN based Messaging Firmware, created f
 
 ## Hardware Specs
 Heltec LoRa V3.2 (ESP32-S3)
+
 Waveshare 3.7" Display (416x240) (SPI)
+
 M5Stack CardKB (I2C)
 
 ## Firmware Specs
