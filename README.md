@@ -1,4 +1,4 @@
-# Carrier Pigeon 
+# Carrier Pigeon - Standalone
 Carrier Pigeon is a Open Source E2EE LoraWAN based Messaging Application, created for the ESP32.
 ## Specs
 > Majority of Crypto is performed using [monocipher.c](https://github.com/LoupVaillant/monocypher).
