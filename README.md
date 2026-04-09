@@ -23,5 +23,5 @@ ECDH-derived shared key + 12 Char PSK
 ### Integrity
 Authenticated encryption (AEAD)
 
-**Security Note**
-Ensure 12 character passphrase is high entropy. (VERY RANDOM)
+## Security Note
+Ensure 12 character passphrase is **high entropy**. (VERY RANDOM)
