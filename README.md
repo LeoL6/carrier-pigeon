@@ -7,7 +7,7 @@ AEAD (XSalsa20-Poly1305)
 ### Key Exchange
 Diffie–Hellman (NaCl keypairs)
 ### Authentication
-HMAC (PSK + session key)
+Blake2b MAC (PSK + session key)
 ### Key Material
 ECDH-derived shared key (X25519) + 12 Char PSK
 ### Nonces
