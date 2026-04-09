@@ -5,13 +5,13 @@ Carrier Pigeon is a Open Source E2EE LoraWAN based Messaging Application, create
 ### Encryption
 AEAD (XSalsa20-Poly1305)
 ### Key Exchange
-Diffie–Hellman (NaCl keypairs)
+Elliptic Curve Diffie–Hellman (X25519)
 ### Authentication
 Blake2b MAC (PSK + session key)
 ### Key Material
-ECDH-derived shared key (X25519) + 12 Char PSK
+ECDH-derived shared key + 12 Char PSK
 ### Nonces
-Session nonce + per-message role + counter nonce 
+(Session nonce) + (Per-message role + counter nonce)
 ### Integrity
 Authenticated encryption (AEAD)
 
