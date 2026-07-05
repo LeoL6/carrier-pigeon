@@ -36,6 +36,12 @@ namespace Handshake
   // <==========================> 
   static Role role = NONE;
 
+  // <============================>
+  //   Role Byte-Masking Constants
+  // <============================> 
+  constexpr uint8_t COMPRESSED_FLAG = 0x80; // top bit
+  constexpr uint8_t ROLE_MASK       = 0x7F; // lower 7 bits
+
   // <==========================>
   //   Pairing Start Time
   // <==========================> 
@@ -70,4 +76,8 @@ namespace Handshake
   void setPSK(const uint8_t* input);
   uint32_t getPairingStartTime();
   bool isEstablished();
+  uint8_t packSenderByte(uint8_t role, bool compressed);
+  uint8_t unpackRole(uint8_t senderByte);
+  bool unpackCompressed(uint8_t senderByte);
+
 }

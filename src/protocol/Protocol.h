@@ -1,8 +1,9 @@
 #pragma once
 #include "Packet.h"
+#define DEBUG_AIRTIME
 
 namespace Protocol
-{
+{  
   // <========================>
   //   Callback
   // <========================>

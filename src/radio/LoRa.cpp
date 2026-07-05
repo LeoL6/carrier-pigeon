@@ -8,9 +8,9 @@ namespace LoRa
   //   LoRa config for North America
   // <=================================>
   static constexpr int RF_FREQUENCY                = 915E6; //Hz
-  static constexpr int TX_OUTPUT_POWER             = 14;    //dbM
+  static constexpr int TX_OUTPUT_POWER             = 20;    //dbM    (14 before)
   static constexpr int LORA_BANDWIDTH              = 0;     // 0:125kHz, 1:250kHz, 2:500kHz
-  static constexpr int LORA_SPREADING_FACTOR       = 7;    
+  static constexpr int LORA_SPREADING_FACTOR       = 10;    //        (7 before)
   static constexpr int LORA_CODINGRATE             = 1;     //4/5
   static constexpr int LORA_PREAMBLE_LENGTH        = 8;     
   static constexpr bool LORA_FIX_LENGTH_PAYLOAD_ON = false; 
@@ -195,5 +195,28 @@ namespace LoRa
     queueTail = (queueTail + 1) % QUEUE_SIZE;
 
     sendNow(pkt);
+  }
+
+  uint32_t getTimeOnAir(size_t payloadLen)
+  {
+    double bw = (LORA_BANDWIDTH == 0) ? 125000.0 :
+                (LORA_BANDWIDTH == 1) ? 250000.0 : 500000.0;
+    int sf = LORA_SPREADING_FACTOR;
+    int cr = LORA_CODINGRATE; // 1 = 4/5
+
+    double Tsym = pow(2, sf) / bw;
+    double Tpreamble = (LORA_PREAMBLE_LENGTH + 4.25) * Tsym;
+
+    bool lowDataRateOptimize = (sf >= 11);
+    int de  = lowDataRateOptimize ? 1 : 0;
+    int crc = 1; // CRC on, adjust if you disable it
+
+    double numerator   = 8.0 * payloadLen - 4.0 * sf + 28 + 16.0 * crc
+                          - 20.0 * (LORA_FIX_LENGTH_PAYLOAD_ON ? 1 : 0);
+    double denominator  = 4.0 * (sf - 2.0 * de);
+    int payloadSymbNb   = 8 + max((int)ceil(numerator / denominator) * (cr + 4), 0);
+
+    double ToA = Tpreamble + payloadSymbNb * Tsym; // seconds
+    return (uint32_t)(ToA * 1e6); // microseconds
   }
 }

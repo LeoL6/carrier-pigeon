@@ -429,4 +429,19 @@ namespace Handshake
   {
     return state == ESTABLISHED;
   }
+
+  uint8_t packSenderByte(uint8_t role, bool compressed) 
+  {
+    return (role & ROLE_MASK) | (compressed ? COMPRESSED_FLAG : 0);
+  }
+
+  uint8_t unpackRole(uint8_t senderByte)
+  {
+    return senderByte & ROLE_MASK;
+  }
+
+  bool unpackCompressed(uint8_t senderByte)
+  {
+    return (senderByte & COMPRESSED_FLAG) != 0;
+  }
 }

@@ -38,7 +38,9 @@ namespace LoRa
   // <========================>
   void clearQueue();
   bool enqueuePacket(uint8_t type, const uint8_t* payload, uint8_t len);
-  // void sendPacket(uint8_t type, const uint8_t* payload, size_t payloadLen);
-  // bool isMessageAvailable();
-  // uint16_t getMessage(uint8_t* buffer);
+
+  // <========================>
+  //   Debug Functions
+  // <========================>
+  uint32_t getTimeOnAir(size_t payloadLen);
 }
